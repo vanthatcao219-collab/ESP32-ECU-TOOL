@@ -78,6 +78,13 @@ textarea{width:100%;background:#0d0f12;color:#ccc;border-radius:8px;border:1px s
     <div class="f"><div class="lb">Số</div><div class="chips gear"><span class="chip" id="gL">L</span><span class="chip" id="gM">M</span><span class="chip" id="gH">H</span><span class="chip" id="gS">S</span></div></div>
     <div class="chips" style="padding-top:8px"><span class="chip" id="cR">Lùi (R)</span><span class="chip" id="cP">Đỗ (P)</span><span class="chip" id="cB">Phanh</span><span class="chip" id="cA">Khóa chống trộm</span><span class="chip" id="cSs">Chân chống</span><span class="chip" id="cRg">Tái sinh</span></div>
   </div>
+  <div class="box"><h4>Hiệu chuẩn hiển thị</h4>
+    <div class="note" style="margin-bottom:4px">Gửi kèm mỗi lần hỏi số liệu, giống ô Calibration trên trang Display của phần mềm máy tính. Nếu điện áp hoặc dòng hiện sai, chỉnh tại đây. Chỉ ảnh hưởng số hiển thị, không ghi vào Votol.</div>
+    <div class="f"><div class="lb">Điện áp<small>vol cal</small></div><input id="cV" type="number" inputmode="numeric"></div>
+    <div class="f"><div class="lb">Dòng<small>cur cal</small></div><input id="cC" type="number" inputmode="numeric"></div>
+    <div class="f"><div class="lb">Giảm từ thông<small>weak flux</small></div><input id="cW" type="number" inputmode="numeric"></div>
+    <div style="display:flex;gap:6px;margin-top:8px"><button class="b green" onclick="calSave()">Lưu</button><button class="b" onclick="calReset()">Mặc định</button></div>
+    <div class="msg" id="cMsg" style="color:#ffd600;font-size:13px;margin-top:6px"></div></div>
   <div class="box"><h4>Lỗi</h4><div class="f"><div class="lb">Mã lỗi</div><b id="dF" style="font-family:monospace">--</b></div><div id="dFl"></div></div>
 </div>
 <div class="page" id="pg1"></div><div class="page" id="pg2"></div><div class="page" id="pg3"></div><div class="page" id="pg4"></div>
@@ -308,7 +315,11 @@ function mk(head){const a=new Array(24).fill(0);head.forEach((b,i)=>a[i]=b);a[22
 const ASC=s=>[...s].map(c=>c.charCodeAt(0));
 const pLDGET=()=>mk([0xC9,0x14,0x02,...ASC('LDGET')]);
 const pRESET=()=>mk([0xC9,0x14,0x02,...ASC('RESET')]);
-function pSHOW(){const wf=cur?cur[67]:0,vc=cur?(cur[13]<<8)|cur[14]:0,cc=cur?(cur[15]<<8)|cur[16]:0;
+function calGet(){return LS.get('cal',{v:1127,c:243,w:30});}
+function calFill(){const c=calGet();$('cV').value=c.v;$('cC').value=c.c;$('cW').value=c.w;}
+function calSave(){const c={v:Math.max(0,Math.min(65535,+$('cV').value||0)),c:Math.max(0,Math.min(65535,+$('cC').value||0)),w:Math.max(0,Math.min(255,+$('cW').value||0))};LS.set('cal',c);calFill();$('cMsg').textContent='✔ Đã lưu – áp dụng ngay';}
+function calReset(){LS.set('cal',{v:1127,c:243,w:30});calFill();$('cMsg').textContent='Đã đặt lại mặc định 1127 / 243 / 30';}
+function pSHOW(){const c=calGet(),wf=c.w,vc=c.v,cc=c.c;
   return mk([0xC9,0x14,0x02,...ASC('SHOW'),0,0,0,0,0,0xAA,0,0,0,wf,0xAA,vc>>8,vc&255,cc>>8,cc&255]);}
 function pWRITE(idx,data){return mk([0xC9,0x14,0x02,0x50,idx,...data]);}
 let junk=[];setInterval(()=>{if(junk.length){logAdd('RX?',junk,'byte lẻ / sai checksum');junk=[];}},400);
@@ -423,6 +434,6 @@ function tab(i){document.querySelectorAll('.tabs button').forEach((b,k)=>b.class
   document.querySelectorAll('.page').forEach((p,k)=>p.classList.toggle('act',k==i));
   $('abar').style.display=(i>=1&&i<=4)?'flex':'none';logDirty=true;}
 
-buildPages();fillAll();drawBackups();$('baud').value=LS.get('baud',0);tab(0);
+buildPages();fillAll();drawBackups();calFill();$('baud').value=LS.get('baud',0);tab(0);
 if(!navigator.bluetooth)$('bmsg').innerHTML='⚠️ Trình duyệt này không hỗ trợ Bluetooth. iPhone: mở bằng app <b>Bluefy</b>. Android: dùng <b>Chrome</b>.';
 </script></body></html>
