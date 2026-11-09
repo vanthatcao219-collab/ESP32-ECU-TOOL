@@ -1,341 +1,423 @@
 <!DOCTYPE html><html lang="vi"><head><meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<meta name="apple-mobile-web-app-capable" content="yes"><meta name="theme-color" content="#16191e">
-<title>ESP32 ECU</title>
-<style>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#16191e"><title>CVT-TOOL</title><style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{margin:0;font-family:-apple-system,Segoe UI,Roboto,sans-serif;background:#0d0f12;color:#e8e8e8}
+body{margin:0;font-family:-apple-system,Segoe UI,Roboto,sans-serif;background:#0d0f12;color:#e8e8e8;padding-bottom:90px}
 header{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:#16191e}
-header b{font-size:18px;letter-spacing:1px}
-#st{font-size:12px;padding:3px 8px;border-radius:8px;background:#1f3a24;color:#7d7}
-#st.bad{background:#4a1c1c;color:#f88}
-.tabs{display:flex;background:#16191e;border-bottom:1px solid #262a31;position:sticky;top:0;z-index:5}
-.tabs button{flex:1;padding:13px 2px;background:none;border:0;color:#888;font-size:13px;font-weight:600;border-bottom:3px solid transparent}
+header b{font-size:18px;letter-spacing:1px}header>div{display:flex;gap:8px;align-items:center}
+#st{font-size:12px;padding:3px 8px;border-radius:8px;background:#1f3a24;color:#7d7}#st.bad{background:#4a1c1c;color:#f88}
+.tabs{display:flex;background:#16191e;border-bottom:1px solid #262a31;position:sticky;top:0;z-index:5;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{flex:1 0 auto;padding:13px 14px;background:none;border:0;color:#888;font-size:14px;font-weight:600;border-bottom:3px solid transparent;white-space:nowrap}
 .tabs button.act{color:#fff;border-color:#e53935}
 .page{display:none;padding:12px}.page.act{display:block}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.card{background:#16191e;border-radius:14px;padding:10px 8px 12px;text-align:center}
-.card.big{grid-column:1/3}
-.card h3{margin:0;font-size:12px;color:#999;letter-spacing:2px}
-.card svg{width:100%;max-width:190px;display:block;margin:0 auto}
-.big svg{max-width:280px}
-.bg,.fg{fill:none;stroke-width:10;stroke-linecap:round}
-.bg{stroke:#2a2e35}
-.fg{stroke-dasharray:100;stroke-dashoffset:100;transition:stroke-dashoffset .25s,stroke .25s}
-.val{font-size:28px;font-weight:700;margin-top:-30px;font-variant-numeric:tabular-nums}
-.big .val{font-size:44px;margin-top:-46px}
-.unit{font-size:12px;color:#777}
-.live{display:flex;justify-content:space-around;background:#16191e;border-radius:12px;padding:8px;margin-bottom:10px;font-size:14px}
-.live span{color:#888}.live b{font-variant-numeric:tabular-nums}
-.wrap{overflow-x:auto;border-radius:10px}
-table{border-collapse:collapse;font-size:12px;min-width:100%}
-th{background:#1c2026;color:#aaa;padding:6px 4px;font-weight:600;white-space:nowrap}
-td{padding:0;text-align:center;border:1px solid #0d0f12}
-td div{min-width:34px;padding:8px 2px;font-weight:700;color:#fff;cursor:pointer}
-td.cur div{outline:3px solid #fff;outline-offset:-3px}
-td.sel div{outline:3px solid #ffd600;outline-offset:-3px}
-.box{background:#16191e;border-radius:12px;padding:12px;margin-top:10px}
-.box h4{margin:0 0 8px;font-size:14px;color:#ffb300}
-.row{display:flex;gap:6px;align-items:center;justify-content:center;margin-top:8px;flex-wrap:wrap}
-button.b{background:#2a2e35;color:#fff;border:0;border-radius:9px;padding:11px 13px;font-size:15px;font-weight:700}
-input{width:80px;padding:10px;font-size:16px;text-align:center;border-radius:9px;border:1px solid #333;background:#0d0f12;color:#fff}
-.green{background:#2e7d32!important}.brown{background:#6d4c00!important}
-.msg{text-align:center;font-size:13px;color:#ffd600;min-height:18px;margin-top:6px}
-.note{font-size:12px;color:#777;text-align:center;margin-top:8px}
-.f{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #22262c;font-size:14px}
-.f:last-child{border:0}.f small{color:#777;display:block;font-size:11px}
-.raw{font-variant-numeric:tabular-nums;color:#7d7}
-.ch{background:#16191e;border-radius:14px;padding:10px;margin-bottom:12px}
-.ch .hd{display:flex;justify-content:space-between;align-items:baseline;margin:0 4px 6px}
-.ch .hd span{font-size:12px;color:#999;letter-spacing:2px;font-weight:600}
-.ch .hd b{font-size:22px;font-variant-numeric:tabular-nums}
-canvas{width:100%;height:170px;display:block}
-.seg{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
-.seg button.on{background:#e53935}
+.box{background:#16191e;border-radius:12px;padding:12px;margin-bottom:10px}
+.box h4{margin:0 0 6px;font-size:14px;color:#ffb300}
+.f{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #22262c;font-size:14px}
+.f:last-child{border:0}.lb small{color:#777;display:block;font-size:11px;margin-top:2px}
+.f.chg,.port.chg{background:#3a3000;margin:0 -12px;padding-left:12px;padding-right:12px;border-radius:8px}
+.port.chg{margin:0 0 10px}
+.ctl{display:flex;align-items:center;gap:6px;flex-shrink:0}.u{color:#888;font-size:12px;min-width:22px}
+input[type=number]{width:96px;padding:9px;font-size:16px;text-align:center;border-radius:9px;border:1px solid #333;background:#0d0f12;color:#fff}
+input[readonly]{color:#888;border-style:dashed}
+select{padding:9px;font-size:15px;border-radius:9px;border:1px solid #333;background:#0d0f12;color:#fff;max-width:100%}
+.seg{display:flex;gap:4px;flex-shrink:0}.seg button{background:#2a2e35;color:#bbb;border:0;border-radius:8px;padding:9px 11px;font-size:13px;font-weight:600}
+.seg button.on{background:#e53935;color:#fff}
+.sw{position:relative;width:50px;height:30px;flex-shrink:0}.sw input{opacity:0;width:0;height:0}
+.sw span{position:absolute;inset:0;background:#2a2e35;border-radius:15px;transition:.2s}
+.sw span:before{content:'';position:absolute;width:24px;height:24px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s}
+.sw input:checked+span{background:#43a047}.sw input:checked+span:before{transform:translateX(20px)}
+button.b{background:#2a2e35;color:#fff;border:0;border-radius:9px;padding:10px 13px;font-size:14px;font-weight:700}
+.green{background:#2e7d32!important}.brown{background:#6d4c00!important}.red{background:#c62828!important}
+.note{font-size:12px;color:#777;line-height:1.5}
+.need{display:none;background:#1c2a3a;color:#90caf9;border-radius:10px;padding:10px;margin-bottom:10px;font-size:14px}
+body.noparam .need{display:block}body.noparam #pg1 .box,body.noparam #pg2 .box,body.noparam #pg3 .box,body.noparam #pg4 .box{opacity:.35;pointer-events:none}
+#abar{position:fixed;left:0;right:0;bottom:0;background:#16191eee;border-top:1px solid #262a31;padding:8px 10px calc(8px + env(safe-area-inset-bottom));display:none;flex-direction:column;gap:6px;z-index:9}
+#abar .row{display:flex;gap:6px}#abar .row button{flex:1;padding:12px 6px}
+#amsg{font-size:12px;color:#ffd600;text-align:center;min-height:15px}#chgN{color:#ffb300;font-weight:700}
+.grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px}
+.card{background:#16191e;border-radius:12px;padding:10px 6px;text-align:center}
+.card h3{margin:0;font-size:11px;color:#888;letter-spacing:1px;font-weight:600}
+.card .v{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:4px}.card .un{font-size:11px;color:#777}
+.card.big{grid-column:1/4}.card.big .v{font-size:56px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}.chip{padding:7px 12px;border-radius:16px;background:#2a2e35;color:#777;font-size:13px;font-weight:700}
+.chip.on{background:#1565c0;color:#fff}.gear .chip.on{background:#e53935}
+.stt{font-size:20px;font-weight:700}.stt.ok{color:#7d7}.stt.bad{color:#f66}
+.ferr{color:#ff8a80;padding:4px 0;font-size:14px}.fok{color:#7d7;font-size:14px}
+.vst{font-size:12px;color:#7d7;text-align:center;margin:-4px 0 10px}.vst.bad{color:#ffb300}
+.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.port{margin:0}.port h4{margin-bottom:6px}
+.port .row3{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px}.port .seg{margin-bottom:6px}.port .seg button{flex:1}
+.port select{width:100%;font-size:12px;padding:7px}
+#lg{background:#0d0f12;border-radius:8px;padding:8px;height:320px;overflow:auto;font:11px/1.5 ui-monospace,Menlo,monospace;color:#9e9;margin:0;white-space:pre}
+textarea{width:100%;background:#0d0f12;color:#ccc;border-radius:8px;border:1px solid #333;font:12px monospace;padding:8px}
+#modal{position:fixed;inset:0;background:#000a;display:none;align-items:center;justify-content:center;z-index:20;padding:16px}
+#modal .mb{background:#1c2026;border-radius:14px;padding:16px;max-width:520px;width:100%;max-height:85vh;overflow:auto}
+#modal h3{margin:0 0 10px;font-size:17px}.ct{width:100%;border-collapse:collapse;font-size:13px}.ct td,.ct th{padding:6px;border-bottom:1px solid #2a2e35;text-align:left}
+.warn2{color:#ffb300;font-size:13px}
+#ban{text-align:center}#ban p{color:#aaa;font-size:14px;margin:6px 0}
+</style></head>
+<body class="noparam">
+<header><b>CVT-TOOL</b><div><span id="st" class="bad">Chưa kết nối</span><button id="bc" class="b green" onclick="connect()">Kết nối</button></div></header>
+<div class="tabs"><button onclick="tab(0)">Hiển thị</button><button onclick="tab(1)">Trang 1</button><button onclick="tab(2)">Trang 2</button><button onclick="tab(3)">Trang 3</button><button onclick="tab(4)">Cổng</button><button onclick="tab(5)">Nhật ký</button></div>
 
-header>div{display:flex;gap:8px;align-items:center}
-header button.b{padding:8px 14px;font-size:14px}
-#ban{text-align:center;margin:0 0 12px}
-#ban p{color:#aaa;font-size:14px;margin:6px 0}
-
-#rlLog{background:#0d0f12;border-radius:8px;padding:8px;height:300px;overflow:auto;font:11px/1.5 ui-monospace,Menlo,monospace;color:#bbb;margin:0;white-space:pre}
-#rlLog .a{color:#7d7}#rlLog .b{color:#4fc3f7}#rlLog .e{color:#ffb300}#rlLog .t{color:#666}#rlLog .s{color:#777}
-select{padding:10px;font-size:15px;border-radius:9px;border:1px solid #333;background:#0d0f12;color:#fff}
-button.b.on{background:#e53935}
-.warn{background:#3a2a00;border:1px solid #6d4c00;border-radius:12px;padding:10px 12px;font-size:13px;color:#ffd54f;line-height:1.5}
-</style></head><body>
-<header><b>ESP32 ECU</b><div><span id="st" class="bad">Chưa kết nối</span><button id="bc" class="b green" onclick="connect()">Kết nối</button></div></header>
-
-<div class="tabs"><button class="act" onclick="tab(0)">Đồng hồ</button><button onclick="tab(1)">Biểu đồ</button><button onclick="tab(2)">Bản đồ</button><button onclick="tab(3)">CVT-TOOL</button><button onclick="tab(4)">Cài đặt</button></div>
-
-<div class="page act" id="p0"><div class="box" id="ban"><h4>Chưa kết nối ESP32</h4>
-<p>Bật Bluetooth trên điện thoại, cấp điện cho ESP32, rồi bấm nút bên dưới và chọn <b>ESP32-ECU</b>.</p>
-<button class="b green" style="font-size:17px;padding:14px 26px" onclick="connect()">Kết nối Bluetooth</button>
-<p id="bmsg" style="color:#ffd600"></p></div><div class="grid" id="gauges"></div></div>
-
-<div class="page" id="pw">
-  <div class="ch"><div class="hd"><span>TPS (%)</span><b id="wtV" style="color:#ab47bc">--</b></div><canvas id="cvT"></canvas></div>
-  <div class="ch"><div class="hd"><span>AFR (xăng : gió)</span><b id="waV" style="color:#29b6f6">--</b></div><canvas id="cvA"></canvas></div>
-  <div class="seg">
-    <button class="b" id="w5" onclick="setWin(5)">5 giây</button>
-    <button class="b on" id="w10" onclick="setWin(10)">10 giây</button>
-    <button class="b" id="w30" onclick="setWin(30)">30 giây</button>
-    <button class="b brown" id="wp" onclick="togP()">Tạm dừng</button>
+<div class="page" id="p0">
+  <div class="box" id="ban"><h4>Chưa kết nối</h4><p>Bật Bluetooth, cấp điện cho ESP32, bật khóa xe rồi bấm nút bên dưới và chọn <b>CVT-TOOL</b>.</p>
+  <button class="b green" style="font-size:17px;padding:14px 26px" onclick="connect()">Kết nối Bluetooth</button><p id="bmsg" style="color:#ffd600"></p></div>
+  <div class="vst" id="vst"></div>
+  <div class="grid">
+    <div class="card big"><h3>RPM</h3><div class="v" id="dRpm">--</div><div class="un">vòng/phút</div></div>
+    <div class="card"><h3>ĐIỆN ÁP</h3><div class="v" id="dV">--</div><div class="un">V</div></div>
+    <div class="card"><h3>DÒNG</h3><div class="v" id="dI">--</div><div class="un">A</div></div>
+    <div class="card"><h3>CÔNG SUẤT</h3><div class="v" id="dW">--</div><div class="un">W</div></div>
+    <div class="card"><h3>NHIỆT BỘ ĐK</h3><div class="v" id="dTc">--</div><div class="un">°C</div></div>
+    <div class="card"><h3>NHIỆT NGOÀI</h3><div class="v" id="dTe">--</div><div class="un">°C</div></div>
+    <div class="card"><h3>HỆ SỐ NHIỆT</h3><div class="v" id="dCo" style="font-size:18px">--</div><div class="un">&nbsp;</div></div>
   </div>
-  <div class="note">Vùng xanh = AFR 12.5–15.2, nét đứt = 14.7. Mỗi vạch dọc = 1 giây (5 giây khi xem 30 giây).</div>
+  <div class="box"><h4>Trạng thái</h4>
+    <div class="f"><div class="lb">Bộ điều khiển</div><div class="stt" id="dSt">--</div></div>
+    <div class="f"><div class="lb">Số</div><div class="chips gear"><span class="chip" id="gL">L</span><span class="chip" id="gM">M</span><span class="chip" id="gH">H</span><span class="chip" id="gS">S</span></div></div>
+    <div class="chips" style="padding-top:8px"><span class="chip" id="cR">Lùi (R)</span><span class="chip" id="cP">Đỗ (P)</span><span class="chip" id="cB">Phanh</span><span class="chip" id="cA">Khóa chống trộm</span><span class="chip" id="cSs">Chân chống</span><span class="chip" id="cRg">Tái sinh</span></div>
+  </div>
+  <div class="box"><h4>Lỗi</h4><div class="f"><div class="lb">Mã lỗi</div><b id="dF" style="font-family:monospace">--</b></div><div id="dFl"></div></div>
 </div>
-
-<div class="page" id="p1">
-  <div class="live">
-    <div><span>RPM </span><b id="lr">-</b></div>
-    <div><span>TPS </span><b id="lt">-</b></div>
-    <div><span>AFR </span><b id="la">-</b></div>
+<div class="page" id="pg1"></div><div class="page" id="pg2"></div><div class="page" id="pg3"></div><div class="page" id="pg4"></div>
+<div class="page" id="pg5">
+  <div class="box"><h4>Kết nối</h4>
+    <div class="f"><div class="lb">Tốc độ cổng Votol (baud)<small>Mặc định 9600. Một số bản dùng 115200</small></div><select id="baud" onchange="setBaud()"><option value="0">9600</option><option value="1">19200</option><option value="2">38400</option><option value="3">57600</option><option value="4">115200</option></select></div>
   </div>
-  <div class="wrap"><table id="tb"></table></div>
-  <div class="box">
-    <div style="text-align:center" id="edL">Chạm vào một ô để chỉnh</div>
-    <div class="row">
-      <button class="b" onclick="adj(-5)">-5</button><button class="b" onclick="adj(-1)">-1</button>
-      <input id="edI" type="number" inputmode="numeric" onchange="setv(this.value)">
-      <button class="b" onclick="adj(1)">+1</button><button class="b" onclick="adj(5)">+5</button>
-    </div>
-    <div class="row">
-      <button class="b" onclick="pickCur()">Chọn ô đang chạy</button>
-      <button class="b green" onclick="saveMap()">Lưu vào ESP32</button>
-      <button class="b brown" onclick="loadMap()">Tải lại</button>
-    </div>
-    <div class="msg" id="msg"></div>
+  <div class="box"><h4>Sao lưu thông số (lưu trên điện thoại này)</h4><div id="bkl"></div>
+    <div class="row" style="display:flex;gap:6px;margin-top:8px"><button class="b" onclick="cpCur()">Chép mã hiện tại</button></div>
+    <textarea id="bkIn" rows="3" placeholder="Dán mã thông số (119 byte hex) vào đây" style="margin-top:8px"></textarea>
+    <div style="margin-top:6px"><button class="b" onclick="pasteLoad()">Nạp mã đã dán</button></div>
+    <textarea id="bkTa" rows="3" readonly style="display:none;margin-top:8px"></textarea>
   </div>
-  <div class="note">100 = chuẩn, lớn hơn = giàu xăng, nhỏ hơn = nghèo xăng (50–200).<br>Khung trắng = ô động cơ đang chạy, khung vàng = ô đang chọn.</div>
+  <div class="box"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><h4 style="margin:0">Nhật ký giao tiếp</h4>
+    <div style="display:flex;gap:6px;align-items:center"><label style="font-size:12px"><input type="checkbox" id="lgShow"> gói SHOW</label><button class="b" onclick="LOG=[];logDirty=true">Xóa</button><button class="b green" onclick="copyLog()">Sao chép</button></div></div>
+    <pre id="lg"></pre><textarea id="lgTa" rows="4" readonly style="display:none;margin-top:8px"></textarea></div>
+  <div style="color:#ffd600;font-size:13px;text-align:center" id="lmsg"></div>
 </div>
-
-<div class="page" id="pr">
-  <div class="warn">⚠️ Đo điện áp dây trước khi cắm. Dây đứng yên ~5V: đi qua cầu chia 10k/20k. ~3.3V: nối qua điện trở 1k. ~12V: <b>KHÔNG nối</b>, báo lại để làm mạch khác.</div>
-  <div class="box"><h4>CVT-TOOL</h4>
-    <div class="f"><div>Tốc độ (baud)<small>thử 9600 trước, rồi 19200, 115200</small></div><select id="rlBaud" onchange="rlSet()"></select></div>
-    <div class="f"><div>Ghi dữ liệu<small>kênh A = GPIO18, kênh B = GPIO16</small></div><button class="b" id="rlSniff" onclick="rlToggle('sniff')">Đang tắt</button></div>
-    <div class="f"><div>Cho phép ESP32 gửi lệnh<small>chỉ bật khi đã rút cáp máy tính</small></div><button class="b" id="rlTx" onclick="rlToggle('tx')">Đang tắt</button></div>
-    <div class="f">Đã nhận<span class="raw" id="rlCnt">A: 0 · B: 0 byte</span></div>
-  </div>
-  <div class="box">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b style="font-size:14px">Nhật ký</b>
-      <div style="display:flex;gap:6px"><button class="b" id="rlP" onclick="rlPause()">Dừng</button><button class="b" onclick="rlClear()">Xóa</button><button class="b green" onclick="rlCopy()">Sao chép</button></div></div>
-    <pre id="rlLog"></pre>
-    <textarea id="rlTa" readonly style="display:none;width:100%;height:160px;margin-top:8px;background:#0d0f12;color:#ccc;border-radius:8px;font:11px monospace"></textarea>
-  </div>
-  <div class="box"><h4>Gửi lệnh (hex)</h4>
-    <div class="row"><input id="rlHex" placeholder="vd: 55 AA 01" autocapitalize="characters" style="flex:1;width:auto;text-align:left;font-family:monospace"><button class="b" onclick="rlSend()">Gửi</button></div>
-    <div class="row" style="font-size:14px"><label><input type="checkbox" id="rlRep" onchange="rlRepeat()" style="width:auto"> Lặp lại mỗi</label><input id="rlMs" type="number" value="200" style="width:80px"> ms</div>
-    <div class="msg" id="msg3"></div>
-  </div>
-  <div class="note">Cách ghi: cắm cáp máy tính vào Redleo như bình thường, câu kênh A/B vào 2 dây dữ liệu, bật "Ghi dữ liệu", rồi mở phần mềm Redleo ECU Pro, nổ máy, vặn ga. Xong bấm "Sao chép" và gửi nội dung cho Claude.</div>
-</div>
-<div class="page" id="p2">
-  <div class="box"><h4>Điện áp đo tại chân ESP32 (trực tiếp)</h4>
-    <div class="f">TPS (GPIO1)<span class="raw" id="rt">-</span></div>
-    <div class="f">AFR (GPIO2)<span class="raw" id="ra">-</span></div>
-    <div class="f">Ắc quy (GPIO4)<span class="raw" id="rb">-</span></div>
-    <div class="f">Xung RPM (GPIO5)<span class="raw" id="rr">-</span></div>
-  </div>
-  <div class="box"><h4>Bướm ga (TPS)</h4>
-    <div class="f"><div>Đóng ga<small>mV khi nhả hết ga</small></div><div><input id="tpsMin" type="number"> <button class="b" onclick="cap('tpsMin')">Lấy</button></div></div>
-    <div class="f"><div>Mở hết ga<small>mV khi vặn hết ga</small></div><div><input id="tpsMax" type="number"> <button class="b" onclick="cap('tpsMax')">Lấy</button></div></div>
-    <div class="note">Nhả ga → bấm "Lấy" dòng trên. Vặn hết ga → bấm "Lấy" dòng dưới. Rồi bấm Lưu.</div>
-  </div>
-  <div class="box"><h4>AFR (bộ wideband)</h4>
-    <div class="f"><div>AFR tại 0V<small>xem sách bộ wideband</small></div><input id="afr0" type="number" step="0.1"></div>
-    <div class="f"><div>AFR tại 5V</div><input id="afr5" type="number" step="0.1"></div>
-    <div class="f"><div>Hệ số cầu chia<small>(R1+R2)/R2, 10k/15k = 1.667</small></div><input id="heSoAfr" type="number" step="0.001"></div>
-  </div>
-  <div class="box"><h4>Ắc quy</h4>
-    <div class="f"><div>Hệ số cầu chia<small>(R1+R2)/R2, 10k/2.2k = 5.545</small></div><input id="heSoAcq" type="number" step="0.001"></div>
-    <div class="f"><div>Hiệu chỉnh theo đồng hồ đo<small>nhập số Volt đo được ở ắc quy</small></div><div><input id="vdo" type="number" step="0.01"> <button class="b" onclick="calBat()">Tính</button></div></div>
-  </div>
-  <div class="box"><h4>Tua máy (RPM)</h4>
-    <div class="f"><div>Số xung mỗi vòng<small>thường là 1 với xe máy</small></div><input id="xungVong" type="number"></div>
-  </div>
-  <div class="row"><button class="b green" onclick="saveCfg()">Lưu cài đặt</button><button class="b brown" onclick="loadCfg()">Tải lại</button></div>
-  <div class="msg" id="msg2"></div>
-</div>
-
-<script>
+<div id="abar"><div id="amsg"></div><div class="row"><button class="b" onclick="readParams()">Đọc thông số</button><button class="b red" onclick="askWrite()">Ghi vào Votol</button></div>
+  <div class="row"><button class="b" onclick="undoAll()">Bỏ thay đổi</button><button class="b brown" onclick="askReset()">Khởi động lại</button></div>
+  <div style="text-align:center;font-size:12px"><span id="chgN"></span></div></div>
+<div id="modal"><div class="mb"><h3 id="mTitle"></h3><div id="mBody"></div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button class="b" onclick="closeM()">Hủy</button><button class="b red" id="mOk">OK</button></div></div></div>
+<script>const PNAMES=[["empty_func", "trống"], ["low_speed_switch", "số 1 nếu nối GND"], ["low_speed_indication", "đèn báo số 1"], ["mid_speed_indication", "đèn báo số 2"], ["high_speed_indication", "đèn báo số 3"], ["high_speed_switch", "số 3 nếu nối GND"], ["egear_butten", "bấm lên số"], ["stealavoid", "nối gnd KHÔNG THỂ NÀO DẮT[chống trộm]"], ["lamehome", "motor auto drive at half max rpm when tu"], ["reverse_set", "số lùi"], ["single_wire_communication", "giao tiếp 1 dây vs táp lô"], ["side_sustain", "chân chống/phanh thấp"], ["hall_smulat_output", "giao tiếp hall vs táp lô mấy con 133"], ["soft_start_selct", "on/off tính năng softstart"], ["cruise_butten", "giữ tốc"], ["high_break", "phanh cao"], ["park_input", "số P"], ["sport_input", "số S"], ["undef_IO_option", "func của PD15 CẤM DÙNG"], ["emergent_sotp", "dừng khẩn cấp"], ["LY_undef_IO_option", "đ bt ~19"], ["LY_e_gear", "dây tự học"], ["LY_single_wire_communication", "đ bt ~11"], ["speed_limit", "on/off giới hạn tốc độ"], ["eabs_on_off", "on/off phanh tái tạo"], ["cruise_with_lamehome", "if throttle error => 26=9;if not => 26=1"], ["egear_with_lamehome", "if throttle error => 27=9;if not => 27=7"], ["low_break", "phanh thấp"], ["half_test_single_wire_communication", "đ bt"], ["park_iwith_lamehome", "17+9"], ["reverse_pressed_run", "bấm thì MỚI LÙI"], ["hill_down_disable", "disable 3gear"], ["voltage_select", "double voltage"], ["auto_cruise_enable", "tự bật cruise khi giữ ga trong 8s"], ["DRN_switch_D_butten", "drive switch, on drn car gear"], ["DRN_switch_R_butten", "reves switch, on drn car gear"], ["ebreak_ctl_deal", "đ bt"], ["Ext_temp_KTY83_122", "cảm biến ndo  KTY83_122"], ["pre_charger", "sạc tụ chống tia lửa điện"], ["main_relay_on_deal", "đ bt"], ["high_break_plus_deal", "đ bt"], ["low_break_plus_deal", "đ bt"], ["change_motor_direct", "đảo chiều động cơ"], ["_low_speed_switch_butten", "bấm thì số 1"], ["_120_change_motor_direct", "tickbox exchange"], ["_60_change_motor_direct", "đ bt"], ["two_egear", "bấm số như egerbuten nhưng chỉ đc số L,M"], ["four_egear", "tương tự ở trên nhưng LMHS(1,2,3,sport"], ["egear_two_current", "đ bt"], ["footplat_enable", "cho phép sử dụng tay ga"], ["coast_enable", "cho phép lướt [đè mo]"], ["Ext_temperatrue_KTY84_150", "cảm biến ndo KTY84_150"], ["Ext_temperatrue_MF52_103_B3380", "cảm biến ndo MF52_103_B3380"], ["egear_add", "bấm lên số page2 button"], ["egear_sub", "bấm xuống số page2 button"], ["park_with_auto_enter", "như nút park nhưng ko đi xe 5s sẽ tự bật"], ["Lead_acid_Lithium_selcet", "lựa chọn pin"], ["park_hold_dectet", "số P kèm đ bt"], ["cruise_with_reverse", "cruise kèm lùi"], ["remove_speed_limit_with_58", "đ bt vs 58"], ["seat_switch_dectet", "cảm biến dây at"], ["fan_ctrl", "điều khiển quạt làm mát"], ["LED_ERR_flash", "Nối đèn LED, nếu có lỗi flash"], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["empty_func", ""], ["canid_sel", ""], ["canid_sel", ""], ["canid_sel", ""], ["canid_sel", ""], ["canid_sel", ""], ["canid_sel", ""], ["canid_sel", ""], ["canid_sel", ""]];
+// ===================== CVT-TOOL cho Votol =====================
 const SVC='a0e1c000-5e7b-4c1a-9d2e-3f1e2c0b0e01',DATA='a0e1c000-5e7b-4c1a-9d2e-3f1e2c0b0e02',CMD='a0e1c000-5e7b-4c1a-9d2e-3f1e2c0b0e03';
-const RPM=[1000,2000,3000,4000,5000,6000,7000,8000,9000,10000],TPS=[0,10,20,30,40,60,80,100];
-const CFG=['tpsMin','tpsMax','afr0','afr5','heSoAfr','heSoAcq','xungVong'];
-let map=[],flat=new Array(80).fill(100),got=0,sel=null,cur=null,last=null,fresh=false;
-let dev=null,cmdC=null,q=Promise.resolve(),manual=false;
 const $=id=>document.getElementById(id);
+const hx=b=>b.toString(16).toUpperCase().padStart(2,'0');
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const LS={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v);}catch(e){return d;}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}};
 
-function tab(i){document.querySelectorAll('.tabs button').forEach((b,k)=>b.classList.toggle('act',k==i));
-  document.querySelectorAll('.page').forEach((p,k)=>p.classList.toggle('act',k==i));if(i==1)drawW();if(i==3){rlDirty=true;rlRender();}}
+// ---------- trạng thái ----------
+let dev=null,cmdC=null,q=Promise.resolve(),manual=false;
+let rx=[],waiters=[],busy=false,lastDisp=0,live=null;
+let orig=null,cur=null,tailOK=true;   // 119 byte thông số
+const NP=119;
 
-// ---------- BLUETOOTH ----------
+// ---------- danh sách thông số ----------
+// num: off,len,scale(chia),dec,signed,min,max(theo giá trị hiển thị)
+const F=[];
+const num=(pg,sec,k,label,en,off,len,o={})=>F.push({t:'num',pg,sec,k,label,en,off,len,s:o.s||1,d:o.d||0,sg:!!o.sg,min:o.min,max:o.max,u:o.u||'',ro:!!o.ro,h:o.h||''});
+const bit=(pg,sec,k,label,en,off,b,o={})=>F.push({t:'bit',pg,sec,k,label,en,off,b,h:o.h||''});
+const rad=(pg,sec,k,label,en,off,mask,opts,o={})=>F.push({t:'rad',pg,sec,k,label,en,off,mask,opts,h:o.h||''});
+const sel=(pg,sec,k,label,en,off,mask,opts,o={})=>F.push({t:'sel',pg,sec,k,label,en,off,mask,opts,h:o.h||''});
+const THR={s:255/5.5,d:2,min:0,max:5.5,u:'V'};
+
+// TRANG 1
+sel(1,'Cơ bản','model','Loại bộ điều khiển','Model',0,0xFF,[['EM-30S',5],['EM-50S',10],['EM-100S',20],['EM-150S',30],['EM-200S',40]]);
+sel(1,'Cơ bản','bat','Điện áp pin','Battery Voltage',1,0x0F,[['48V',0],['60V',1],['72V',2],['84V',3],['96V',4]]);
+num(1,'Cơ bản','ovv','Quá áp','Overvoltage',2,2,{s:10,d:1,u:'V',min:0,max:200});
+num(1,'Cơ bản','uv','Thấp áp','Undervoltage',11,2,{s:10,d:1,u:'V',min:0,max:200});
+num(1,'Cơ bản','suv','Thấp áp mềm','Soft undervoltage',4,2,{s:10,d:1,u:'V',min:0,max:200});
+num(1,'Cơ bản','uvv','Biến thiên thấp áp','Undervoltage variation',6,1,{s:10,d:1,u:'V',min:0,max:25.5});
+num(1,'Cơ bản','bus','Dòng busbar','Busbar current',7,2,{u:'A',min:0,max:1000,h:'Theo cộng đồng: đây là dòng phanh tái sinh'});
+num(1,'Cơ bản','phase','Dòng pha','Phase current',9,2,{min:0,max:20000,h:'Đơn vị 0.01A/MOSFET. Tăng quá mức có thể cháy MOSFET'});
+num(1,'Tay ga (tối đa 5.5V)','tlow','Ngưỡng bảo vệ thấp','Low protect',104,1,THR);
+num(1,'Tay ga (tối đa 5.5V)','tstart','Điện áp bắt đầu','Start voltage',102,1,THR);
+num(1,'Tay ga (tối đa 5.5V)','tend','Điện áp kết thúc','End voltage',103,1,THR);
+num(1,'Tay ga (tối đa 5.5V)','thigh','Ngưỡng bảo vệ cao','High',105,1,THR);
+num(1,'Khởi động','stq','Mô-men khởi động','Start torque',108,2,{min:0,max:65535});
+num(1,'Khởi động','ctq','Mô-men kết hợp','Combinative torque',110,2,{min:0,max:350});
+num(1,'Khởi động','rise','Tốc độ tăng','Rate of rise',107,1,{min:0,max:255});
+num(1,'Khởi động','dec','Tốc độ giảm','Rate of decline',106,1,{min:0,max:255,h:'Liên quan độ mạnh phanh tái sinh'});
+num(1,'Hiệu chuẩn','vcal','Hiệu chuẩn điện áp','vol cal',13,2,{min:0,max:65535});
+num(1,'Hiệu chuẩn','ccal','Hiệu chuẩn dòng','cur cal',15,2,{min:0,max:65535});
+num(1,'Hiệu chuẩn','wcal','Hiệu chuẩn giảm từ thông','weak flux cal',67,1,{min:0,max:255});
+
+// TRANG 2
+num(2,'Chế độ thể thao','clim','Giới hạn dòng','Current-Limiting',17,2,{u:'A',min:0,max:1000});
+num(2,'Chế độ thể thao','flux','Giảm từ thông','Flux-Weakening value',22,2,{min:0,max:5000});
+num(2,'Chế độ thể thao','ki','Giảm từ thông 2 / KI','Flux-Weakening 2 / KI',61,2,{min:0,max:65535});
+num(2,'Chế độ thể thao','mtpa','Bù giảm từ thông (MTPA)','Flux-Weakening compensation',33,1,{min:0,max:255});
+num(2,'Chế độ thể thao','logout','Tự thoát sau','Logout time',31,1,{u:'s',min:0,max:255});
+num(2,'Chế độ thể thao','recov','Phục hồi sau','Recovery time',32,1,{u:'s',min:0,max:255});
+bit(2,'Chế độ thể thao','autolo','Tự động thoát chế độ thể thao','Automatic logout',46,6);
+num(2,'Ba số','g1r','Số thấp – % tua','Low (%)',19,1,{u:'%',min:0,max:100});
+num(2,'Ba số','g1a','Số thấp – % dòng','Low (%) 2',58,1,{u:'%',min:0,max:255});
+num(2,'Ba số','g2r','Số trung – % tua','Mid (%)',20,1,{u:'%',min:0,max:100});
+num(2,'Ba số','g2a','Số trung – % dòng','Mid (%) 2',59,1,{u:'%',min:0,max:255});
+num(2,'Ba số','g3r','Số cao – % tua','High (%)',21,1,{u:'%',min:0,max:100});
+num(2,'Ba số','g3a','Số cao – % dòng','High (%) 2',60,1,{u:'%',min:0,max:255});
+num(2,'Ba số','kp','Thông số số cao / KP','High flux-weakening / KP',24,2,{min:0,max:65535});
+num(2,'Ba số','sph','Thông số số trung / dòng pha khởi động','Mid flux-weakening / start phase',26,2,{min:0,max:65535});
+rad(2,'Ba số','btn','Kiểu chuyển số','Button / Switch 3 speed',28,0x20,[['Nút bấm',0],['Công tắc',0x20]]);
+rad(2,'Ba số','defg','Số mặc định khi bật máy','Three speed default gear',28,0x0E,[['Thấp',8],['Trung',4],['Cao',2]]);
+bit(2,'Ba số','soft','Khởi động mềm','Soft start enabled',28,7);
+num(2,'Ba số','softg','Mức khởi động mềm','Soft start grade',30,1,{min:0,max:16});
+num(2,'Ba số','plim','Dòng pha giới hạn','Limit phase',63,2,{min:0,max:65535});
+num(2,'Ba số','ptime','Thời gian giới hạn dòng pha','Limit phase time',65,2,{u:'s',min:0,max:65535});
+bit(2,'Hỗ trợ đổ dốc / giữ dốc','hhc','Giữ dốc (HHC)','HHC Enable',46,3);
+bit(2,'Hỗ trợ đổ dốc / giữ dốc','hdc','Hỗ trợ đổ dốc (HDC)','HDC Enable',51,1);
+bit(2,'Giới hạn tốc độ','slim','Bật giới hạn tốc độ','Speed limited enable',28,0);
+num(2,'Giới hạn tốc độ','sratio','Tỉ lệ tốc độ','Speed ratio',29,1,{u:'%',min:0,max:100});
+
+// TRANG 3
+num(3,'Động cơ','pole','Số cặp cực','Pole pairs',47,1,{min:1,max:64});
+num(3,'Động cơ','hall','Góc lệch Hall','Hall shift angle',34,2,{sg:1,u:'°',min:-99,max:99});
+bit(3,'Động cơ','xhall','Đảo dây Hall Vàng–Xanh dương','exchange hall wire Yellow-Blue',46,5);
+bit(3,'Động cơ','xphase','Đảo dây pha Xanh dương–Xanh lá','exchange phase wire Blue-Green',46,4);
+rad(3,'Động cơ','mtype','Kiểu động cơ','Motor type',28,0x10,[['Gắn bề mặt (hub)',0],['V-type',0x10]]);
+rad(3,'Động cơ','dir','Chiều quay','Motor direction',46,0x80,[['Thuận',0],['Ngược',0x80]]);
+num(3,'Động cơ','maxrpm','Tua tối đa','Max RPM',56,2,{u:'rpm',min:0,max:65535});
+num(3,'Lùi & phanh','rev','Giới hạn tốc độ lùi','Reversing speed limit',45,1,{u:'%',min:0,max:100});
+num(3,'Lùi & phanh','ebs','Tỉ lệ phanh tái sinh','EBS ratio',48,1,{u:'%',min:0,max:100});
+bit(3,'Lùi & phanh','lowbrk','Phanh thấp','Low brake',28,6);
+bit(3,'Lùi & phanh','secure','Khởi động an toàn','Secure boot',51,6);
+rad(3,'Ngõ ra đồng hồ','out','Kiểu ngõ ra','Out-put',51,0x04,[['One-Lin (1 dây)',0x04],['Hall',0]]);
+bit(3,'Hỗ trợ dắt xe & giữ tốc','mvb','Hỗ trợ dắt xe','Moving vehicle booster',51,0);
+bit(3,'Hỗ trợ dắt xe & giữ tốc','cruise','Giữ tốc độ (Cruise)','Cruise',51,3);
+num(3,'Hỗ trợ dắt xe & giữ tốc','mvbs','Tốc độ dắt xe','Booster speed ratio',52,2,{s:327.67,d:1,u:'%',min:0,max:100});
+num(3,'Hỗ trợ dắt xe & giữ tốc','mvbt','Mô-men dắt xe','Booster torque',54,2,{min:0,max:65535});
+bit(3,'Tự nhận điện áp kép','dv','Bật điện áp kép','Double-voltage',51,4);
+rad(3,'Tự nhận điện áp kép','dvl','Mức','Low / High',51,0x20,[['Thấp',0],['Cao',0x20]]);
+num(3,'Nhiệt độ & bảo vệ','t1','Nhiệt độ bắt đầu giảm công suất','IC high temp',36,1,{u:'°C',min:0,max:255});
+num(3,'Nhiệt độ & bảo vệ','t2','Nhiệt độ quá nhiệt','IC over temp',37,1,{u:'°C',min:0,max:255});
+num(3,'Nhiệt độ & bảo vệ','t3','Nhiệt độ giới hạn','IC temp limit',38,1,{u:'°C',min:0,max:255});
+num(3,'Nhiệt độ & bảo vệ','tc1','TC1 (dòng pha khi giới hạn nhiệt)','TC1',39,2,{min:0,max:65535});
+num(3,'Nhiệt độ & bảo vệ','tc2','TC2 (kiểm soát lực kéo)','TC2',41,2,{min:0,max:65535});
+num(3,'Nhiệt độ & bảo vệ','tc3','TC3 (bù tốc độ One-Lin)','TC3',43,2,{min:0,max:65535});
+num(3,'Phiên bản','sw','Phần mềm','Software version',49,1,{s:100,d:2,ro:1});
+num(3,'Phiên bản','hw','Phần cứng','Hardware version',50,1,{s:100,d:2,ro:1});
+
+// CỔNG
+const PORTS=[['PD0',68],['JTCK',70],['SWD',72],['PA11',74],['PB3',76],['PD1',78],['PA12',80],['PC15',82],['PA0',85],['PB9',87],['PB4',89],['PA15',91],['PB2',93],['PC14',95],['PB5',97],['PD15',99]];
+
+const FAULTS=[[0x01,'Đang bóp phanh khi khởi động'],[0x02,'Quá dòng phần cứng (chạm MOSFET / động cơ)'],[0x04,'Thấp áp'],[0x08,'Lỗi Hall động cơ'],[0x10,'Quá áp'],[0x20,'Lỗi MCU'],[0x40,'Kẹt động cơ'],[0x80,'Lỗi tay ga (điện áp ngoài khoảng)'],[0x100,'Lỗi điều khiển tốc độ'],[0x200,'Vừa ghi EEPROM – cần khởi động lại'],[0x800,'Mất kiểm soát / chạm giới hạn tua'],[0x1000,'Quá nhiệt bộ điều khiển'],[0x2000,'Quá dòng phần mềm'],[0x4000,'Lỗi bàn đạp ga'],[0x8000,'Lỗi cảm biến dòng 1'],[0x10000,'Lỗi cảm biến dòng 2'],[0x20000,'Lỗi công tắc phanh'],[0x40000,'Lỗi chọn Hall'],[0x80000,'Lỗi driver MOSFET'],[0x100000,'Chạm MOSFET phía cao'],[0x200000,'Hở pha'],[0x400000,'Chạm pha'],[0x800000,'Lỗi chip MCU'],[0x1000000,'Lỗi sạc tụ trước'],[0x8000000,'Quá nhiệt động cơ'],[0x80000000,'SOC bằng 0']];
+const STATES=['Chờ (IDLE)','Khởi tạo (INIT)','Khởi động (START)','Đang chạy (RUN)','Dừng (STOP)','Phanh (BRAKE)','Chờ (WAIT)','LỖI (FAULT)'];
+
+// ---------- đọc / ghi giá trị trong mảng ----------
+function getRaw(a,f){let v=f.len==2?(a[f.off]<<8)|a[f.off+1]:a[f.off];if(f.sg&&f.len==2&&v>=0x8000)v-=0x10000;return v;}
+function setRaw(a,f,v){if(f.len==2){v&=0xFFFF;a[f.off]=v>>8;a[f.off+1]=v&255;}else a[f.off]=v&255;}
+function fieldBytes(f){if(f.t=='num')return f.len==2?[f.off,f.off+1]:[f.off];return [f.off];}
+function fieldChanged(f){if(!orig)return false;
+  if(f.t=='num')return fieldBytes(f).some(i=>orig[i]!=cur[i]);
+  const m=f.t=='bit'?(1<<f.b):f.mask;return (orig[f.off]&m)!=(cur[f.off]&m);}
+function fmt(f,a){return (getRaw(a,f)/f.s).toFixed(f.d);}
+
+// ---------- giao diện thông số ----------
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');}
+function buildPages(){
+  for(const pg of [1,2,3]){
+    const secs=[...new Set(F.filter(f=>f.pg==pg).map(f=>f.sec))];
+    let h='<div class="need">Bấm <b>Đọc thông số</b> để lấy dữ liệu từ Votol.</div>';
+    for(const s of secs){h+=`<div class="box"><h4>${esc(s)}</h4>`;
+      for(const f of F.filter(x=>x.pg==pg&&x.sec==s)){
+        const lab=`<div class="lb">${esc(f.label)}<small>${esc(f.en)}${f.h?' · '+esc(f.h):''}</small></div>`;
+        let c='';
+        if(f.t=='num')c=`<div class="ctl"><input id="f_${f.k}" type="number" inputmode="decimal" step="${f.d?Math.pow(10,-f.d):1}" ${f.ro?'readonly':''} onchange="onNum('${f.k}')">${f.u?`<span class="u">${f.u}</span>`:''}</div>`;
+        else if(f.t=='bit')c=`<label class="sw"><input id="f_${f.k}" type="checkbox" onchange="onBit('${f.k}')"><span></span></label>`;
+        else if(f.t=='rad')c=`<div class="seg" id="f_${f.k}">${f.opts.map((o,i)=>`<button onclick="onRad('${f.k}',${i})">${esc(o[0])}</button>`).join('')}</div>`;
+        else if(f.t=='sel')c=`<select id="f_${f.k}" onchange="onSel('${f.k}')">${f.opts.map(o=>`<option value="${o[1]}">${esc(o[0])}</option>`).join('')}</select>`;
+        h+=`<div class="f" id="r_${f.k}">${lab}${c}</div>`;}
+      h+='</div>';}
+    $('pg'+pg).innerHTML=h;}
+  // cổng
+  let h='<div class="need">Bấm <b>Đọc thông số</b> để lấy dữ liệu từ Votol.</div><div class="note" style="margin:0 0 10px">IO / SW / LA và F / U / D giữ nguyên ý nghĩa như phần mềm máy tính. Chức năng có dấu * là cộng đồng ghi chú “chưa kiểm chứng”.</div><div class="pgrid">';
+  const opts=PNAMES.map((n,i)=>`<option value="${i}">${i+1}: ${esc(n[0])}${n[1]?' – '+esc(n[1]):''}${/đ bt|FAILED|CẤM/.test(n[1])?' *':''}</option>`).join('');
+  PORTS.forEach(([n,o],i)=>{h+=`<div class="box port" id="pt${i}"><h4>${n}</h4>
+    <div class="row3"><label><input type="checkbox" id="p${i}io" onchange="onPort(${i})"> IO</label><label><input type="checkbox" id="p${i}sw" onchange="onPort(${i})"> SW</label><label><input type="checkbox" id="p${i}la" onchange="onPort(${i})"> LA</label></div>
+    <div class="seg" id="p${i}m"><button onclick="onPortM(${i},0)">F</button><button onclick="onPortM(${i},1)">U</button><button onclick="onPortM(${i},2)">D</button></div>
+    <select id="p${i}fn" onchange="onPort(${i})">${opts}</select></div>`;});
+  $('pg4').innerHTML=h+'</div>';
+}
+function fillAll(){
+  const has=!!cur;document.body.classList.toggle('noparam',!has);
+  if(!has)return;
+  for(const f of F){const el=$('f_'+f.k);
+    if(f.t=='num')el.value=fmt(f,cur);
+    else if(f.t=='bit')el.checked=!!(cur[f.off]&(1<<f.b));
+    else if(f.t=='rad'){const v=cur[f.off]&f.mask;[...el.children].forEach((b,i)=>b.classList.toggle('on',f.opts[i][1]==v));}
+    else if(f.t=='sel'){const v=cur[f.off]&f.mask;if(![...el.options].some(o=>+o.value==v)){const o=document.createElement('option');o.value=v;o.textContent='Khác ('+v+')';el.appendChild(o);}el.value=v;}
+    $('r_'+f.k).classList.toggle('chg',fieldChanged(f));}
+  PORTS.forEach(([n,o],i)=>{const b=cur[o],fn=cur[o+1];
+    $('p'+i+'io').checked=!!(fn&0x80);$('p'+i+'sw').checked=!!(b&1);$('p'+i+'la').checked=!!(b&8);
+    const m=(b&2)?1:(b&4)?2:0;[...$('p'+i+'m').children].forEach((x,k)=>x.classList.toggle('on',k==m));
+    $('p'+i+'fn').value=fn&0x7F;
+    $('pt'+i).classList.toggle('chg',orig&&(orig[o]!=cur[o]||orig[o+1]!=cur[o+1]));});
+  updCount();}
+function fk(k){return F.find(f=>f.k==k);}
+function onNum(k){const f=fk(k),el=$('f_'+k);let v=parseFloat(el.value);if(isNaN(v)){fillAll();return;}
+  if(f.min!=null)v=Math.max(f.min,v);if(f.max!=null)v=Math.min(f.max,v);
+  setRaw(cur,f,Math.round(v*f.s));fillAll();}
+function onBit(k){const f=fk(k);cur[f.off]=$('f_'+k).checked?cur[f.off]|(1<<f.b):cur[f.off]&~(1<<f.b);fillAll();}
+function onRad(k,i){if(!cur)return;const f=fk(k);cur[f.off]=(cur[f.off]&~f.mask)|f.opts[i][1];fillAll();}
+function onSel(k){const f=fk(k);cur[f.off]=(cur[f.off]&~f.mask)|(+$('f_'+k).value&f.mask);fillAll();}
+function onPort(i){if(!cur)return;const o=PORTS[i][1];let b=cur[o]&~0x09;if($('p'+i+'sw').checked)b|=1;if($('p'+i+'la').checked)b|=8;cur[o]=b;
+  cur[o+1]=(+$('p'+i+'fn').value&0x7F)|($('p'+i+'io').checked?0x80:0);fillAll();}
+function onPortM(i,m){if(!cur)return;const o=PORTS[i][1];cur[o]=(cur[o]&~0x06)|(m==1?2:m==2?4:0);fillAll();}
+function changes(){if(!orig)return [];const out=[];
+  for(const f of F)if(fieldChanged(f)){let a,b;
+    if(f.t=='num'){a=fmt(f,orig)+' '+f.u;b=fmt(f,cur)+' '+f.u;}
+    else if(f.t=='bit'){a=orig[f.off]&(1<<f.b)?'Bật':'Tắt';b=cur[f.off]&(1<<f.b)?'Bật':'Tắt';}
+    else{const nm=x=>{const o=f.opts.find(o=>o[1]==(x[f.off]&f.mask));return o?o[0]:String(x[f.off]&f.mask);};a=nm(orig);b=nm(cur);}
+    out.push([f.label,a,b]);}
+  PORTS.forEach(([n,o])=>{if(orig[o]!=cur[o]||orig[o+1]!=cur[o+1])out.push(['Cổng '+n,hx(orig[o])+' '+hx(orig[o+1]),hx(cur[o])+' '+hx(cur[o+1])]);});
+  for(let i=0;i<NP;i++){if(orig[i]!=cur[i]&&!F.some(f=>fieldBytes(f).includes(i))&&!PORTS.some(p=>i==p[1]||i==p[1]+1))out.push(['Byte '+i,hx(orig[i]),hx(cur[i])]);}
+  return out;}
+function updCount(){const n=changes().length;$('chgN').textContent=n?n+' thay đổi chưa ghi':'';}
+
+// ---------- Bluetooth ----------
 function st(t,ok){$('st').textContent=t;$('st').className=ok?'':'bad';}
 function conn(ok){$('bc').textContent=ok?'Ngắt':'Kết nối';$('bc').className='b '+(ok?'brown':'green');$('ban').style.display=ok?'none':'block';}
-function send(arr){const b=new Uint8Array(arr);
-  q=q.then(()=>{if(!cmdC)throw new Error('Chưa kết nối');return cmdC.writeValueWithResponse?cmdC.writeValueWithResponse(b):cmdC.writeValue(b);});
-  q=q.catch(e=>{console.log(e);});return q;}
-function i16(v){v=Math.round(v)&0xffff;return [v&255,v>>8];}
-
+function bleWrite(arr){const b=new Uint8Array(arr);
+  q=q.then(()=>{if(!cmdC)throw new Error('Chưa kết nối');return cmdC.writeValueWithResponse?cmdC.writeValueWithResponse(b):cmdC.writeValue(b);}).catch(e=>console.log(e));return q;}
+function sendVotol(bytes,tag){for(let i=0;i<bytes.length;i+=19)bleWrite([1,...bytes.slice(i,i+19)]);logAdd('TX',bytes,tag);}
 async function connect(){
   if(dev&&dev.gatt.connected){manual=true;dev.gatt.disconnect();return;}
-  if(!navigator.bluetooth){$('bmsg').innerHTML='⚠️ Trình duyệt này không hỗ trợ Bluetooth.<br>iPhone: mở trang này bằng app <b>Bluefy</b>. Android: dùng <b>Chrome</b>.';return;}
-  try{
-    if(!dev){dev=await navigator.bluetooth.requestDevice({filters:[{namePrefix:'ESP32-ECU'},{services:[SVC]}],optionalServices:[SVC]});
-      dev.addEventListener('gattserverdisconnected',onDisc);}
-    manual=false;await gattConnect();
-  }catch(e){st('Chưa kết nối');$('bmsg').textContent='Không kết nối được: '+e.message;}}
-async function gattConnect(){
-  st('Đang kết nối...');
+  if(!navigator.bluetooth){$('bmsg').innerHTML='⚠️ Trình duyệt này không hỗ trợ Bluetooth. iPhone: mở bằng app <b>Bluefy</b>. Android: dùng <b>Chrome</b>.';return;}
+  try{if(!dev){dev=await navigator.bluetooth.requestDevice({filters:[{namePrefix:'CVT-TOOL'},{services:[SVC]}],optionalServices:[SVC]});dev.addEventListener('gattserverdisconnected',onDisc);}
+    manual=false;await gattConnect();}catch(e){st('Chưa kết nối');$('bmsg').textContent='Không kết nối được: '+e.message;}}
+async function gattConnect(){st('Đang kết nối...');
   const s=await dev.gatt.connect(),sv=await s.getPrimaryService(SVC);
   const d=await sv.getCharacteristic(DATA);cmdC=await sv.getCharacteristic(CMD);q=Promise.resolve();
-  d.addEventListener('characteristicvaluechanged',onData);await d.startNotifications();
-  st('Đã kết nối',1);conn(true);$('bmsg').textContent='';got=0;send([4]);}
-function onDisc(){cmdC=null;conn(false);rl.sniff=rl.tx=false;rlUI();clearInterval(rlTimer);if($('rlRep'))$('rlRep').checked=false;
+  d.addEventListener('characteristicvaluechanged',onBle);await d.startNotifications();
+  st('Đã kết nối',1);conn(true);$('bmsg').textContent='';
+  bleWrite([2,LS.get('baud',0)]);await sleep(300);
+  if(!cur)readParams();}
+function onDisc(){cmdC=null;conn(false);busy=false;
   if(manual){st('Đã ngắt');return;}
   st('Mất kết nối – đang thử lại...');
   setTimeout(async()=>{if(dev&&!dev.gatt.connected&&!manual){try{await gattConnect();}catch(e){onDisc();}}},2000);}
+function onBle(e){const v=e.target.value,t=v.getUint8(0);
+  if(t==0x20){for(let i=1;i<v.byteLength;i++)rx.push(v.getUint8(i));parseRx();}
+  else if(t==0x21){$('baud').value=v.getUint8(1);}}
 
-function onData(e){const v=e.target.value,t=v.getUint8(0);
-  if(t==0x10&&v.byteLength>=19){
-    last={rpm:v.getUint16(1,true),tps:v.getUint16(3,true)/10,afr:v.getUint16(5,true)/100,bat:v.getUint16(7,true)/100,
-      mt:v.getUint16(9,true),ma:v.getUint16(11,true),mb:v.getUint16(13,true)};
-    let wa_=v.getUint16(17,true);wt.push(v.getUint16(15,true)/10);wa.push(wa_?wa_/100:null);
-    if(wt.length>600){wt.splice(0,wt.length-600);wa.splice(0,wa.length-600);}fresh=true;}
-  else if(t==0x11){const k=v.getUint8(1);for(let j=0;j<8;j++)flat[k*8+j]=v.getInt16(2+j*2,true);
-    got|=1<<k;if(got==1023){map=TPS.map((_,i)=>flat.slice(i*10,i*10+10));draw();if(sel)pick(sel[0],sel[1]);$('msg').textContent='Đã tải bản đồ từ ESP32';}}
-  else if(t==0x12){const a=[v.getInt16(1,true),v.getInt16(3,true),v.getInt16(5,true)/100,v.getInt16(7,true)/100,
-      v.getInt16(9,true)/1000,v.getInt16(11,true)/1000,v.getInt16(13,true)];
-    CFG.forEach((k,i)=>$(k).value=a[i]);$('msg2').textContent='Đã tải cài đặt từ ESP32';}
-  else if(t==0x20){const d=v.getUint8(1),b=[];for(let k=2;k<v.byteLength;k++)b.push(v.getUint8(k));
-    if(d==0)cntA+=b.length;else cntB+=b.length;rlAdd(d,b);}
-  else if(t==0x21){rl.baud=v.getUint8(1);const f=v.getUint8(2);rl.sniff=!!(f&1);rl.tx=!!(f&2);rlUI();}
-  else if(t==0x13){const c=v.getUint8(1);
-    if(c==1)$('msg').textContent='✔ Đã lưu bản đồ vào ESP32';
-    else if(c==2)$('msg2').textContent='✔ Đã lưu cài đặt';
-    else{$('msg').textContent='ESP32 báo lỗi dữ liệu';$('msg2').textContent='ESP32 báo giá trị không hợp lệ';}}}
+// ---------- giao thức Votol ----------
+function xor22(a){let x=0;for(let i=0;i<22;i++)x^=a[i];return x;}
+function mk(head){const a=new Array(24).fill(0);head.forEach((b,i)=>a[i]=b);a[22]=xor22(a);a[23]=0x0D;return a;}
+const ASC=s=>[...s].map(c=>c.charCodeAt(0));
+const pLDGET=()=>mk([0xC9,0x14,0x02,...ASC('LDGET')]);
+const pRESET=()=>mk([0xC9,0x14,0x02,...ASC('RESET')]);
+function pSHOW(){const wf=cur?cur[67]:0,vc=cur?(cur[13]<<8)|cur[14]:0,cc=cur?(cur[15]<<8)|cur[16]:0;
+  return mk([0xC9,0x14,0x02,...ASC('SHOW'),0,0,0,0,0,0xAA,0,0,0,wf,0xAA,vc>>8,vc&255,cc>>8,cc&255]);}
+function pWRITE(idx,data){return mk([0xC9,0x14,0x02,0x50,idx,...data]);}
+function parseRx(){
+  while(rx.length>=24){
+    if(rx[0]!=0xC0||rx[1]!=0x14){rx.shift();continue;}
+    const f=rx.slice(0,24);
+    if(f[23]!=0x0D||xor22(f)!=f[22]){rx.shift();continue;}
+    rx.splice(0,24);onFrame(f);}
+  if(rx.length>512)rx=rx.slice(-48);}
+function onFrame(f){
+  let tag='';
+  if(f[2]==0x0D&&f[3]==0x59&&f[4]==0x42){tag='SHOW';onDisplay(f);}
+  else if(f[3]==0x52&&f[4]>=1&&f[4]<=7)tag='Trang '+f[4];
+  else if(f[3]==0x50)tag='Xác nhận ghi';
+  else if(f[3]==0xFE)tag='Khởi động';
+  logAdd('RX',f,tag);
+  for(const w of [...waiters])if(w.p(f)){waiters.splice(waiters.indexOf(w),1);clearTimeout(w.t);w.r(f);}}
+function waitFor(p,ms){return new Promise(r=>{const w={p,r};w.t=setTimeout(()=>{waiters.splice(waiters.indexOf(w),1);r(null);},ms);waiters.push(w);});}
 
-// ---------- ĐỒNG HỒ ----------
-function mk(id,t,u,big){return `<div class="card ${big?'big':''}"><h3>${t}</h3>
-<svg viewBox="0 0 120 68"><path class="bg" d="M10 62 A50 50 0 0 1 110 62"/>
-<path class="fg" id="${id}A" pathLength="100" d="M10 62 A50 50 0 0 1 110 62"/></svg>
-<div class="val" id="${id}V">--</div><div class="unit">${u}</div></div>`}
-$('gauges').innerHTML=mk('rpm','RPM','vòng/phút',1)+mk('afr','AFR','xăng : gió')+mk('tps','TPS','% bướm ga')+mk('bat','ẮC QUY','Volt');
-function g(id,v,min,max,txt,col){let f=Math.max(0,Math.min(1,(v-min)/(max-min)));
-  $(id+'A').style.strokeDashoffset=100-f*100;$(id+'A').style.stroke=col;$(id+'V').textContent=txt;}
+// ---------- hiển thị ----------
+const i16=(a,i)=>{let v=(a[i]<<8)|a[i+1];return v>=0x8000?v-0x10000:v;};
+function onDisplay(f){lastDisp=Date.now();
+  live={v:i16(f,5)/10,i:i16(f,7)/10,fault:((f[10]<<24)|(f[11]<<16)|(f[12]<<8)|f[13])>>>0,rpm:i16(f,14),tc:f[16]-50,te:f[17]-50,coef:(f[18]<<8)|f[19],g:f[20],s:f[21]};
+  drawDisplay();}
+function drawDisplay(){const d=live;if(!d)return;
+  $('dRpm').textContent=d.rpm;$('dV').textContent=d.v.toFixed(1);$('dI').textContent=d.i.toFixed(1);
+  $('dW').textContent=Math.round(d.v*d.i);$('dTc').textContent=d.tc;$('dTe').textContent=d.te;$('dCo').textContent=d.coef;
+  $('dSt').textContent=STATES[d.s]||('Mã '+d.s);$('dSt').className='stt'+(d.s==7?' bad':d.s==3?' ok':'');
+  ['L','M','H','S'].forEach((n,i)=>$('g'+n).classList.toggle('on',(d.g&3)==i));
+  [['cR',4],['cP',8],['cB',0x10],['cA',0x20],['cSs',0x40],['cRg',0x80]].forEach(([id,m])=>$(id).classList.toggle('on',!!(d.g&m)));
+  $('dF').textContent='0x'+d.fault.toString(16).toUpperCase().padStart(8,'0');
+  const act=FAULTS.filter(([m])=>(d.fault&m)!==0);
+  $('dFl').innerHTML=act.length?act.map(([m,n])=>`<div class="ferr">⚠️ ${n}</div>`).join(''):'<div class="fok">✔ Không có lỗi</div>';}
+setInterval(()=>{
+  if(cmdC&&!busy)sendVotol(pSHOW(),'SHOW');
+  const ok=Date.now()-lastDisp<1500;
+  $('vst').textContent=cmdC?(ok?'Votol: đang nhận dữ liệu':'Votol: không phản hồi – kiểm tra dây & baud'):'';
+  $('vst').className='vst'+(cmdC&&!ok?' bad':'');},300);
 
-// ---------- BẢN ĐỒ XĂNG ----------
-function near(a,v){let b=0;for(let k=1;k<a.length;k++)if(Math.abs(a[k]-v)<Math.abs(a[b]-v))b=k;return b}
-function hue(v){let f=Math.max(0,Math.min(1,(v-70)/60));return `hsl(${220-220*f},65%,36%)`}
-function draw(){let h='<tr><th>TPS \\ RPM</th>'+RPM.map(r=>`<th>${r/1000}k</th>`).join('')+'</tr>';
-  for(let i=TPS.length-1;i>=0;i--){h+=`<tr><th>${TPS[i]}%</th>`;
-    for(let j=0;j<RPM.length;j++)h+=`<td id="c${i}_${j}"><div style="background:${hue(map[i][j])}" onclick="pick(${i},${j})">${map[i][j]}</div></td>`;
-    h+='</tr>'}
-  $('tb').innerHTML=h;mark();}
-function mark(){document.querySelectorAll('td.cur,td.sel').forEach(e=>e.classList.remove('cur','sel'));
-  if(cur)$(`c${cur[0]}_${cur[1]}`)?.classList.add('cur');
-  if(sel)$(`c${sel[0]}_${sel[1]}`)?.classList.add('sel');}
-function cell(i,j){let d=$(`c${i}_${j}`).firstChild;d.textContent=map[i][j];d.style.background=hue(map[i][j]);}
-function pick(i,j){if(!map.length)return;sel=[i,j];$('edL').innerHTML=`Ô: <b>${RPM[j]} RPM</b> / <b>TPS ${TPS[i]}%</b>`;$('edI').value=map[i][j];mark();}
-function pickCur(){if(cur)pick(cur[0],cur[1])}
-function setv(v){if(!sel)return;v=Math.max(50,Math.min(200,parseInt(v)||100));
-  map[sel[0]][sel[1]]=v;$('edI').value=v;cell(sel[0],sel[1]);$('msg').textContent='Chưa lưu — bấm "Lưu vào ESP32"';}
-function adj(d){if(sel)setv(map[sel[0]][sel[1]]+d)}
-function loadMap(){if(!cmdC){$('msg').textContent='Chưa kết nối Bluetooth';return;}got=0;send([4]);}
-function saveMap(){if(!cmdC||!map.length){$('msg').textContent='Chưa kết nối Bluetooth';return;}
-  const f=map.flat();$('msg').textContent='Đang lưu...';
-  for(let k=0;k<10;k++){let a=[1,k];for(let j=0;j<8;j++)a.push(...i16(f[k*8+j]));send(a);}send([2]);}
+// ---------- đọc / ghi thông số ----------
+function msg(t){$('amsg').textContent=t;}
+async function readParams(silent){
+  if(!cmdC){msg('Chưa kết nối Bluetooth');return false;}
+  if(busy)return false;busy=true;msg('Đang đọc thông số...');
+  let ok=false;
+  for(let tries=0;tries<2&&!ok;tries++){
+    const got={};const done=new Promise(res=>{const w={p:f=>{if(f[2]==0x05&&f[3]==0x52&&f[4]>=1&&f[4]<=7){got[f[4]]=f.slice(5,22);}return Object.keys(got).length==7;},r:res};w.t=setTimeout(()=>{waiters.splice(waiters.indexOf(w),1);res(null);},3000);waiters.push(w);});
+    await sleep(200);sendVotol(pLDGET(),'LDGET');
+    await done;
+    if(Object.keys(got).length==7){const a=[];for(let i=1;i<=7;i++)a.push(...got[i]);
+      tailOK=a.slice(112,119).every((b,i)=>b==a[10+i]);
+      orig=a.slice();cur=a.slice();ok=true;
+      const bk=LS.get('backups',[]);bk.unshift({t:new Date().toLocaleString('vi-VN'),h:a.map(hx).join('')});LS.set('backups',bk.slice(0,8));
+      drawBackups();}
+  }
+  busy=false;fillAll();
+  msg(ok?'✔ Đã đọc thông số'+(tailOK?'':' (mã kiểm tra trang 7 khác dự kiến – sẽ giữ nguyên khi ghi)'):'✖ Không đọc được – kiểm tra dây, baud, và Votol đã bật khóa');
+  return ok;}
+function askWrite(){
+  if(!cur){msg('Hãy đọc thông số trước');return;}
+  const ch=changes();if(!ch.length){msg('Chưa có thay đổi nào để ghi');return;}
+  $('mBody').innerHTML='<table class="ct"><tr><th>Thông số</th><th>Cũ</th><th>Mới</th></tr>'+ch.map(c=>`<tr><td>${esc(c[0])}</td><td>${esc(c[1])}</td><td><b>${esc(c[2])}</b></td></tr>`).join('')+'</table><p class="warn2">Chỉ ghi khi xe đang dựng chân chống, bánh không chạm đất. Sai thông số có thể làm hỏng bộ điều khiển hoặc động cơ.</p>';
+  $('mTitle').textContent='Ghi '+ch.length+' thay đổi vào Votol?';$('mOk').textContent='Ghi';$('mOk').onclick=()=>{closeM();doWrite();};$('modal').style.display='flex';}
+function askReset(){$('mTitle').textContent='Khởi động lại bộ điều khiển?';$('mBody').innerHTML='<p>Gửi lệnh RESET tới Votol. Dùng sau khi ghi thông số nếu Votol báo “Vừa ghi EEPROM – cần khởi động lại”. Có thể tắt / bật khóa xe thay cho lệnh này.</p>';
+  $('mOk').textContent='Khởi động lại';$('mOk').onclick=()=>{closeM();if(!cmdC){msg('Chưa kết nối Bluetooth');return;}sendVotol(pRESET(),'RESET');msg('Đã gửi lệnh khởi động lại');};$('modal').style.display='flex';}
+function closeM(){$('modal').style.display='none';}
+async function doWrite(){
+  if(!cmdC){msg('Chưa kết nối Bluetooth');return;}
+  if(busy)return;busy=true;
+  const data=cur.slice();if(tailOK)for(let i=0;i<7;i++)data[112+i]=data[10+i];else for(let i=0;i<7;i++)data[112+i]=orig[112+i];
+  await sleep(250);
+  for(let idx=1;idx<=7;idx++){msg(`Đang ghi trang ${idx}/7...`);
+    const ack=waitFor(f=>f[2]==0x0D&&f[3]==0x50,1500);
+    sendVotol(pWRITE(idx,data.slice((idx-1)*17,idx*17)),'GHI '+idx);
+    if(!await ack){busy=false;msg(`✖ Votol không xác nhận trang ${idx}. Dừng ghi. Hãy đọc lại thông số để kiểm tra.`);return;}
+    await sleep(60);}
+  busy=false;const want=data.slice();
+  msg('Đã ghi, đang đọc lại để kiểm tra...');await sleep(400);
+  const ok=await readParams();
+  if(ok){const bad=[];for(let i=0;i<112;i++)if(orig[i]!=want[i]&&!(i==49||i==50))bad.push(i);
+    msg(bad.length?`⚠️ Đã ghi nhưng ${bad.length} byte đọc lại khác giá trị đã ghi (byte ${bad.slice(0,6).join(', ')}).`:'✔ Ghi thành công và đã kiểm tra lại. Nên tắt / bật khóa xe để áp dụng.');}
+  else msg('Đã gửi 7 trang nhưng không đọc lại được. Hãy bấm Đọc thông số.');}
+function undoAll(){if(!orig)return;cur=orig.slice();fillAll();msg('Đã bỏ các thay đổi chưa ghi');}
 
-// ---------- CÀI ĐẶT ----------
-function loadCfg(){if(!cmdC){$('msg2').textContent='Chưa kết nối Bluetooth';return;}got=0;send([4]);}
-function saveCfg(){if(!cmdC){$('msg2').textContent='Chưa kết nối Bluetooth';return;}
-  const v=CFG.map(k=>parseFloat($(k).value));if(v.some(isNaN)){$('msg2').textContent='Có ô bị trống';return;}
-  const m=[1,1,100,100,1000,1000,1];send([3,...v.flatMap((x,i)=>i16(x*m[i]))]);$('msg2').textContent='Đang lưu...';}
-function cap(k){if(last){$(k).value=last.mt;$('msg2').textContent='Đã lấy '+last.mt+' mV — nhớ bấm Lưu';}}
-function calBat(){let v=parseFloat($('vdo').value);if(v>0&&last&&last.mb>50){$('heSoAcq').value=(v*1000/last.mb).toFixed(3);
-  $('msg2').textContent='Đã tính hệ số — nhớ bấm Lưu';}}
+// ---------- nhật ký ----------
+let LOG=[],logDirty=false,T0=performance.now();
+function logAdd(dir,b,tag){if(!$('lgShow').checked&&tag=='SHOW')return;
+  LOG.push(`${((performance.now()-T0)/1000).toFixed(2).padStart(7)} ${dir} ${b.map(hx).join(' ')}${tag?'  ['+tag+']':''}`);if(LOG.length>500)LOG.splice(0,100);logDirty=true;}
+setInterval(()=>{if(!logDirty||!$('pg5').classList.contains('act'))return;logDirty=false;const el=$('lg');const stick=el.scrollTop+el.clientHeight>=el.scrollHeight-20;el.textContent=LOG.slice(-250).join('\n');if(stick)el.scrollTop=el.scrollHeight;},300);
+async function copyText(t,okMsg,ta){try{await navigator.clipboard.writeText(t);alertMsg(okMsg);}catch(e){const x=$(ta);x.value=t;x.style.display='block';x.focus();x.select();alertMsg('Chạm giữ vào ô bên dưới → Chọn tất cả → Sao chép');}}
+function alertMsg(t){$('lmsg').textContent=t;}
+function copyLog(){copyText(LOG.join('\n'),'✔ Đã sao chép nhật ký','lgTa');}
+function setBaud(){LS.set('baud',+$('baud').value);if(cmdC)bleWrite([2,+$('baud').value]);}
+function drawBackups(){const bk=LS.get('backups',[]);
+  $('bkl').innerHTML=bk.length?bk.map((b,i)=>`<div class="f"><div class="lb">${esc(b.t)}<small>${b.h.slice(0,24)}…</small></div><div style="display:flex;gap:6px"><button class="b" onclick="useBk(${i})">Nạp</button><button class="b" onclick="cpBk(${i})">Chép</button></div></div>`).join(''):'<div class="note">Chưa có. Mỗi lần đọc thông số thành công app tự lưu một bản tại máy này.</div>';}
+function hexTo(h){const m=(h.match(/[0-9a-fA-F]{2}/g)||[]).map(x=>parseInt(x,16));return m.length==NP?m:null;}
+function loadHex(h){const a=hexTo(h);if(!a){alertMsg('Mã thông số phải đủ 119 byte');return;}
+  if(!orig){alertMsg('Hãy kết nối và Đọc thông số trước, rồi mới nạp bản sao lưu');return;}
+  cur=a.slice();for(const i of [49,50])cur[i]=orig[i];fillAll();alertMsg('Đã nạp vào form – kiểm tra các ô màu vàng rồi bấm Ghi');tab(1);}
+function useBk(i){loadHex(LS.get('backups',[])[i].h);}
+function cpBk(i){copyText(LS.get('backups',[])[i].h,'✔ Đã sao chép mã thông số','bkTa');}
+function cpCur(){if(!cur){alertMsg('Chưa có thông số');return;}copyText(cur.map(hx).join(''),'✔ Đã sao chép mã thông số hiện tại','bkTa');}
+function pasteLoad(){loadHex($('bkIn').value);}
 
-// ---------- BIỂU ĐỒ SÓNG ----------
-let wt=[],wa=[],paused=false,win=10;
-function setWin(s){win=s;[5,10,30].forEach(v=>$('w'+v).classList.toggle('on',v==s));drawW();}
-function togP(){paused=!paused;$('wp').textContent=paused?'Tiếp tục':'Tạm dừng';if(!paused)drawW();}
-function plot(id,arr,min,max,col,band){
-  const c=$(id),r=c.getBoundingClientRect();if(!r.width)return;
-  const dp=window.devicePixelRatio||1;
-  if(c.width!=Math.round(r.width*dp)||c.height!=Math.round(r.height*dp)){c.width=Math.round(r.width*dp);c.height=Math.round(r.height*dp);}
-  const x=c.getContext('2d'),W=c.width,H=c.height,L=30*dp,P=8*dp,n=win*20,dx=(W-L)/(n-1);
-  const Y=v=>P+(H-2*P)*(1-(v-min)/(max-min));
-  x.clearRect(0,0,W,H);
-  if(band){x.fillStyle='rgba(67,160,71,.13)';x.fillRect(L,Y(band[1]),W-L,Y(band[0])-Y(band[1]));
-    x.setLineDash([5*dp,4*dp]);x.strokeStyle='rgba(67,160,71,.7)';x.lineWidth=dp;
-    x.beginPath();x.moveTo(L,Y(band[2]));x.lineTo(W,Y(band[2]));x.stroke();x.setLineDash([]);}
-  x.strokeStyle='#262a31';x.lineWidth=dp;x.fillStyle='#777';x.font=(10*dp)+'px sans-serif';x.textAlign='right';x.textBaseline='middle';
-  for(let k=0;k<=4;k++){let v=min+(max-min)*k/4,y=Y(v);x.beginPath();x.moveTo(L,y);x.lineTo(W,y);x.stroke();x.fillText(+v.toFixed(1),L-4*dp,y);}
-  const stp=win>10?5:1;
-  for(let s=stp;s<win;s+=stp){let xx=W-s*20*dx;x.beginPath();x.moveTo(xx,P);x.lineTo(xx,H-P);x.stroke();}
-  const d=arr.slice(-n),off=n-d.length;
-  x.strokeStyle=col;x.lineWidth=2*dp;x.lineJoin='round';x.beginPath();let pen=false;
-  d.forEach((v,i)=>{if(v==null){pen=false;return;}let xx=L+(off+i)*dx,yy=Y(Math.max(min,Math.min(max,v)));
-    pen?x.lineTo(xx,yy):x.moveTo(xx,yy);pen=true;});
-  x.stroke();}
-function drawW(){if(paused)return;
-  plot('cvT',wt,0,100,'#ab47bc');plot('cvA',wa,10,20,'#29b6f6',[12.5,15.2,14.7]);
-  let t=wt[wt.length-1],a=wa[wa.length-1];
-  $('wtV').textContent=t!=null?Math.round(t)+'%':'--';$('waV').textContent=a!=null?a.toFixed(1):'--';}
-window.addEventListener('resize',drawW);
+// ---------- tab ----------
+function tab(i){document.querySelectorAll('.tabs button').forEach((b,k)=>b.classList.toggle('act',k==i));
+  document.querySelectorAll('.page').forEach((p,k)=>p.classList.toggle('act',k==i));
+  $('abar').style.display=(i>=1&&i<=4)?'flex':'none';logDirty=true;}
 
-
-// ---------- CỔNG REDLEO ----------
-const BAUDS=[4800,9600,10400,19200,38400,57600,115200];
-let rl={baud:1,sniff:false,tx:false},rlLines=[],rlCur=null,rlPaused=false,rlDirty=false,cntA=0,cntB=0,rlT0=performance.now(),rlTimer=null;
-$('rlBaud').innerHTML=BAUDS.map((b,i)=>`<option value="${i}">${b}</option>`).join('');$('rlBaud').value=1;
-function rlUI(){$('rlBaud').value=rl.baud;
-  $('rlSniff').textContent=rl.sniff?'Đang ghi':'Đang tắt';$('rlSniff').classList.toggle('on',rl.sniff);
-  $('rlTx').textContent=rl.tx?'Đang bật':'Đang tắt';$('rlTx').classList.toggle('on',rl.tx);}
-function rlApply(){if(!cmdC){$('msg3').textContent='Chưa kết nối Bluetooth';return;}send([6,rl.baud,(rl.sniff?1:0)|(rl.tx?2:0)]);rlUI();}
-function rlSet(){rl.baud=+$('rlBaud').value;rlAdd(2,null,'— đổi baud '+BAUDS[rl.baud]+' —');rlApply();}
-function rlToggle(k){rl[k]=!rl[k];if(k=='tx'&&rl.tx)$('msg3').textContent='Nhớ rút cáp máy tính khỏi Redleo khi ESP32 gửi lệnh';rlApply();}
-function hx(b){return b.toString(16).toUpperCase().padStart(2,'0')}
-function rlAdd(dir,bytes,text){const t=performance.now();
-  if(bytes&&rlCur&&rlCur.dir==dir&&t-rlCur.last<30&&rlCur.bytes.length<48){rlCur.bytes.push(...bytes);rlCur.last=t;}
-  else{rlCur={t:(t-rlT0)/1000,dir,bytes:bytes?[...bytes]:[],text,last:t};rlLines.push(rlCur);if(rlLines.length>3000)rlLines.splice(0,500);}
-  if(!bytes)rlCur=null;rlDirty=true;}
-function rlFmt(l,html){const tag=['A→','B→','  ','ESP→'][l.dir];
-  const tt=l.t.toFixed(3).padStart(8);
-  if(l.text)return html?`<span class="t">${tt}</span> <span class="s">${l.text}</span>`:`${tt} ${l.text}`;
-  const h=l.bytes.map(hx).join(' '),a=l.bytes.map(b=>b>=32&&b<127?String.fromCharCode(b):'.').join('');
-  if(!html)return `${tt} ${tag} ${h} |${a}|`;
-  const esc=a.replace(/&/g,'&amp;').replace(/</g,'&lt;');
-  return `<span class="t">${tt}</span> <span class="${['a','b','s','e'][l.dir]}">${tag} ${h}</span> <span class="s">|${esc}|</span>`;}
-function rlRender(){if(!rlDirty||rlPaused||!$('pr').classList.contains('act'))return;rlDirty=false;
-  const el=$('rlLog'),stick=el.scrollTop+el.clientHeight>=el.scrollHeight-20;
-  el.innerHTML=rlLines.slice(-300).map(l=>rlFmt(l,1)).join('\n');if(stick)el.scrollTop=el.scrollHeight;
-  $('rlCnt').textContent=`A: ${cntA} · B: ${cntB} byte`;}
-function rlPause(){rlPaused=!rlPaused;$('rlP').textContent=rlPaused?'Tiếp':'Dừng';rlDirty=true;rlRender();}
-function rlClear(){rlLines=[];rlCur=null;cntA=cntB=0;rlT0=performance.now();rlDirty=true;$('rlLog').innerHTML='';rlRender();}
-async function rlCopy(){const txt=`Redleo log – baud ${BAUDS[rl.baud]}\n`+rlLines.map(l=>rlFmt(l,0)).join('\n');
-  try{await navigator.clipboard.writeText(txt);$('msg3').textContent='✔ Đã sao chép '+rlLines.length+' dòng';$('rlTa').style.display='none';}
-  catch(e){const ta=$('rlTa');ta.value=txt;ta.style.display='block';ta.focus();ta.select();$('msg3').textContent='Chạm giữ vào ô bên dưới → Chọn tất cả → Sao chép';}}
-function rlParse(){const m=($('rlHex').value.match(/[0-9a-fA-F]{2}/g)||[]).map(x=>parseInt(x,16));return m;}
-function rlSend(){if(!cmdC){$('msg3').textContent='Chưa kết nối Bluetooth';return false;}
-  if(!rl.tx){$('msg3').textContent='Hãy bật "Cho phép ESP32 gửi lệnh" trước';return false;}
-  const b=rlParse();if(!b.length){$('msg3').textContent='Nhập byte dạng hex, vd: 55 AA 01';return false;}
-  for(let i=0;i<b.length;i+=19)send([5,...b.slice(i,i+19)]);rlCur=null;rlAdd(3,b);rlCur=null;return true;}
-function rlRepeat(){clearInterval(rlTimer);rlTimer=null;
-  if($('rlRep').checked){if(!rlSend()){$('rlRep').checked=false;return;}
-    rlTimer=setInterval(()=>{if(!rlSend()){clearInterval(rlTimer);$('rlRep').checked=false;}},Math.max(50,+$('rlMs').value||200));}}
-setInterval(rlRender,150);
-// ---------- CẬP NHẬT MÀN HÌNH ~10 lần/giây ----------
-setInterval(()=>{if(!fresh||!last)return;fresh=false;const d=last;
-  g('rpm',d.rpm,0,10000,Math.round(d.rpm),d.rpm>9000?'#e53935':d.rpm>7000?'#fb8c00':'#43a047');
-  let ok=d.ma>30;
-  g('afr',ok?d.afr:10,10,20,ok?d.afr.toFixed(1):'--',d.afr<12.5?'#1e88e5':d.afr>15.2?'#e53935':'#43a047');
-  g('tps',d.tps,0,100,Math.round(d.tps),'#8e24aa');
-  g('bat',d.bat,10,16,d.bat.toFixed(1),d.bat<12?'#e53935':d.bat>14.8?'#fb8c00':'#43a047');
-  $('lr').textContent=Math.round(d.rpm);$('lt').textContent=Math.round(d.tps)+'%';$('la').textContent=ok?d.afr.toFixed(1):'--';
-  $('rt').textContent=d.mt+' mV';$('ra').textContent=d.ma+' mV';$('rb').textContent=d.mb+' mV';
-  $('rr').textContent=d.rpm>0?'Có xung':'Không có xung';
-  if(map.length){let c=[near(TPS,d.tps),near(RPM,d.rpm)];if(!cur||c[0]!=cur[0]||c[1]!=cur[1]){cur=c;mark();}}
-  drawW();},100);
-if(!navigator.bluetooth)$('bmsg').innerHTML='⚠️ Trình duyệt này không hỗ trợ Bluetooth.<br>iPhone: mở trang này bằng app <b>Bluefy</b>. Android: dùng <b>Chrome</b>.';
+buildPages();fillAll();drawBackups();$('baud').value=LS.get('baud',0);tab(0);
+if(!navigator.bluetooth)$('bmsg').innerHTML='⚠️ Trình duyệt này không hỗ trợ Bluetooth. iPhone: mở bằng app <b>Bluefy</b>. Android: dùng <b>Chrome</b>.';
 </script></body></html>
