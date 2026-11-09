@@ -1,0 +1,270 @@
+<!DOCTYPE html><html lang="vi"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="theme-color" content="#16191e">
+<title>ESP32 ECU</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;font-family:-apple-system,Segoe UI,Roboto,sans-serif;background:#0d0f12;color:#e8e8e8}
+header{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:#16191e}
+header b{font-size:18px;letter-spacing:1px}
+#st{font-size:12px;padding:3px 8px;border-radius:8px;background:#1f3a24;color:#7d7}
+#st.bad{background:#4a1c1c;color:#f88}
+.tabs{display:flex;background:#16191e;border-bottom:1px solid #262a31;position:sticky;top:0;z-index:5}
+.tabs button{flex:1;padding:13px 2px;background:none;border:0;color:#888;font-size:14px;font-weight:600;border-bottom:3px solid transparent}
+.tabs button.act{color:#fff;border-color:#e53935}
+.page{display:none;padding:12px}.page.act{display:block}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.card{background:#16191e;border-radius:14px;padding:10px 8px 12px;text-align:center}
+.card.big{grid-column:1/3}
+.card h3{margin:0;font-size:12px;color:#999;letter-spacing:2px}
+.card svg{width:100%;max-width:190px;display:block;margin:0 auto}
+.big svg{max-width:280px}
+.bg,.fg{fill:none;stroke-width:10;stroke-linecap:round}
+.bg{stroke:#2a2e35}
+.fg{stroke-dasharray:100;stroke-dashoffset:100;transition:stroke-dashoffset .25s,stroke .25s}
+.val{font-size:28px;font-weight:700;margin-top:-30px;font-variant-numeric:tabular-nums}
+.big .val{font-size:44px;margin-top:-46px}
+.unit{font-size:12px;color:#777}
+.live{display:flex;justify-content:space-around;background:#16191e;border-radius:12px;padding:8px;margin-bottom:10px;font-size:14px}
+.live span{color:#888}.live b{font-variant-numeric:tabular-nums}
+.wrap{overflow-x:auto;border-radius:10px}
+table{border-collapse:collapse;font-size:12px;min-width:100%}
+th{background:#1c2026;color:#aaa;padding:6px 4px;font-weight:600;white-space:nowrap}
+td{padding:0;text-align:center;border:1px solid #0d0f12}
+td div{min-width:34px;padding:8px 2px;font-weight:700;color:#fff;cursor:pointer}
+td.cur div{outline:3px solid #fff;outline-offset:-3px}
+td.sel div{outline:3px solid #ffd600;outline-offset:-3px}
+.box{background:#16191e;border-radius:12px;padding:12px;margin-top:10px}
+.box h4{margin:0 0 8px;font-size:14px;color:#ffb300}
+.row{display:flex;gap:6px;align-items:center;justify-content:center;margin-top:8px;flex-wrap:wrap}
+button.b{background:#2a2e35;color:#fff;border:0;border-radius:9px;padding:11px 13px;font-size:15px;font-weight:700}
+input{width:80px;padding:10px;font-size:16px;text-align:center;border-radius:9px;border:1px solid #333;background:#0d0f12;color:#fff}
+.green{background:#2e7d32!important}.brown{background:#6d4c00!important}
+.msg{text-align:center;font-size:13px;color:#ffd600;min-height:18px;margin-top:6px}
+.note{font-size:12px;color:#777;text-align:center;margin-top:8px}
+.f{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #22262c;font-size:14px}
+.f:last-child{border:0}.f small{color:#777;display:block;font-size:11px}
+.raw{font-variant-numeric:tabular-nums;color:#7d7}
+.ch{background:#16191e;border-radius:14px;padding:10px;margin-bottom:12px}
+.ch .hd{display:flex;justify-content:space-between;align-items:baseline;margin:0 4px 6px}
+.ch .hd span{font-size:12px;color:#999;letter-spacing:2px;font-weight:600}
+.ch .hd b{font-size:22px;font-variant-numeric:tabular-nums}
+canvas{width:100%;height:170px;display:block}
+.seg{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+.seg button.on{background:#e53935}
+
+header>div{display:flex;gap:8px;align-items:center}
+header button.b{padding:8px 14px;font-size:14px}
+#ban{text-align:center;margin:0 0 12px}
+#ban p{color:#aaa;font-size:14px;margin:6px 0}
+</style></head><body>
+<header><b>ESP32 ECU</b><div><span id="st" class="bad">Chưa kết nối</span><button id="bc" class="b green" onclick="connect()">Kết nối</button></div></header>
+
+<div class="tabs"><button class="act" onclick="tab(0)">Đồng hồ</button><button onclick="tab(1)">Biểu đồ</button><button onclick="tab(2)">Bản đồ xăng</button><button onclick="tab(3)">Cài đặt</button></div>
+
+<div class="page act" id="p0"><div class="box" id="ban"><h4>Chưa kết nối ESP32</h4>
+<p>Bật Bluetooth trên điện thoại, cấp điện cho ESP32, rồi bấm nút bên dưới và chọn <b>ESP32-ECU</b>.</p>
+<button class="b green" style="font-size:17px;padding:14px 26px" onclick="connect()">Kết nối Bluetooth</button>
+<p id="bmsg" style="color:#ffd600"></p></div><div class="grid" id="gauges"></div></div>
+
+<div class="page" id="pw">
+  <div class="ch"><div class="hd"><span>TPS (%)</span><b id="wtV" style="color:#ab47bc">--</b></div><canvas id="cvT"></canvas></div>
+  <div class="ch"><div class="hd"><span>AFR (xăng : gió)</span><b id="waV" style="color:#29b6f6">--</b></div><canvas id="cvA"></canvas></div>
+  <div class="seg">
+    <button class="b" id="w5" onclick="setWin(5)">5 giây</button>
+    <button class="b on" id="w10" onclick="setWin(10)">10 giây</button>
+    <button class="b" id="w30" onclick="setWin(30)">30 giây</button>
+    <button class="b brown" id="wp" onclick="togP()">Tạm dừng</button>
+  </div>
+  <div class="note">Vùng xanh = AFR 12.5–15.2, nét đứt = 14.7. Mỗi vạch dọc = 1 giây (5 giây khi xem 30 giây).</div>
+</div>
+
+<div class="page" id="p1">
+  <div class="live">
+    <div><span>RPM </span><b id="lr">-</b></div>
+    <div><span>TPS </span><b id="lt">-</b></div>
+    <div><span>AFR </span><b id="la">-</b></div>
+  </div>
+  <div class="wrap"><table id="tb"></table></div>
+  <div class="box">
+    <div style="text-align:center" id="edL">Chạm vào một ô để chỉnh</div>
+    <div class="row">
+      <button class="b" onclick="adj(-5)">-5</button><button class="b" onclick="adj(-1)">-1</button>
+      <input id="edI" type="number" inputmode="numeric" onchange="setv(this.value)">
+      <button class="b" onclick="adj(1)">+1</button><button class="b" onclick="adj(5)">+5</button>
+    </div>
+    <div class="row">
+      <button class="b" onclick="pickCur()">Chọn ô đang chạy</button>
+      <button class="b green" onclick="saveMap()">Lưu vào ESP32</button>
+      <button class="b brown" onclick="loadMap()">Tải lại</button>
+    </div>
+    <div class="msg" id="msg"></div>
+  </div>
+  <div class="note">100 = chuẩn, lớn hơn = giàu xăng, nhỏ hơn = nghèo xăng (50–200).<br>Khung trắng = ô động cơ đang chạy, khung vàng = ô đang chọn.</div>
+</div>
+
+<div class="page" id="p2">
+  <div class="box"><h4>Điện áp đo tại chân ESP32 (trực tiếp)</h4>
+    <div class="f">TPS (GPIO1)<span class="raw" id="rt">-</span></div>
+    <div class="f">AFR (GPIO2)<span class="raw" id="ra">-</span></div>
+    <div class="f">Ắc quy (GPIO4)<span class="raw" id="rb">-</span></div>
+    <div class="f">Xung RPM (GPIO5)<span class="raw" id="rr">-</span></div>
+  </div>
+  <div class="box"><h4>Bướm ga (TPS)</h4>
+    <div class="f"><div>Đóng ga<small>mV khi nhả hết ga</small></div><div><input id="tpsMin" type="number"> <button class="b" onclick="cap('tpsMin')">Lấy</button></div></div>
+    <div class="f"><div>Mở hết ga<small>mV khi vặn hết ga</small></div><div><input id="tpsMax" type="number"> <button class="b" onclick="cap('tpsMax')">Lấy</button></div></div>
+    <div class="note">Nhả ga → bấm "Lấy" dòng trên. Vặn hết ga → bấm "Lấy" dòng dưới. Rồi bấm Lưu.</div>
+  </div>
+  <div class="box"><h4>AFR (bộ wideband)</h4>
+    <div class="f"><div>AFR tại 0V<small>xem sách bộ wideband</small></div><input id="afr0" type="number" step="0.1"></div>
+    <div class="f"><div>AFR tại 5V</div><input id="afr5" type="number" step="0.1"></div>
+    <div class="f"><div>Hệ số cầu chia<small>(R1+R2)/R2, 10k/15k = 1.667</small></div><input id="heSoAfr" type="number" step="0.001"></div>
+  </div>
+  <div class="box"><h4>Ắc quy</h4>
+    <div class="f"><div>Hệ số cầu chia<small>(R1+R2)/R2, 10k/2.2k = 5.545</small></div><input id="heSoAcq" type="number" step="0.001"></div>
+    <div class="f"><div>Hiệu chỉnh theo đồng hồ đo<small>nhập số Volt đo được ở ắc quy</small></div><div><input id="vdo" type="number" step="0.01"> <button class="b" onclick="calBat()">Tính</button></div></div>
+  </div>
+  <div class="box"><h4>Tua máy (RPM)</h4>
+    <div class="f"><div>Số xung mỗi vòng<small>thường là 1 với xe máy</small></div><input id="xungVong" type="number"></div>
+  </div>
+  <div class="row"><button class="b green" onclick="saveCfg()">Lưu cài đặt</button><button class="b brown" onclick="loadCfg()">Tải lại</button></div>
+  <div class="msg" id="msg2"></div>
+</div>
+
+<script>
+const SVC='a0e1c000-5e7b-4c1a-9d2e-3f1e2c0b0e01',DATA='a0e1c000-5e7b-4c1a-9d2e-3f1e2c0b0e02',CMD='a0e1c000-5e7b-4c1a-9d2e-3f1e2c0b0e03';
+const RPM=[1000,2000,3000,4000,5000,6000,7000,8000,9000,10000],TPS=[0,10,20,30,40,60,80,100];
+const CFG=['tpsMin','tpsMax','afr0','afr5','heSoAfr','heSoAcq','xungVong'];
+let map=[],flat=new Array(80).fill(100),got=0,sel=null,cur=null,last=null,fresh=false;
+let dev=null,cmdC=null,q=Promise.resolve(),manual=false;
+const $=id=>document.getElementById(id);
+
+function tab(i){document.querySelectorAll('.tabs button').forEach((b,k)=>b.classList.toggle('act',k==i));
+  document.querySelectorAll('.page').forEach((p,k)=>p.classList.toggle('act',k==i));if(i==1)drawW();}
+
+// ---------- BLUETOOTH ----------
+function st(t,ok){$('st').textContent=t;$('st').className=ok?'':'bad';}
+function conn(ok){$('bc').textContent=ok?'Ngắt':'Kết nối';$('bc').className='b '+(ok?'brown':'green');$('ban').style.display=ok?'none':'block';}
+function send(arr){const b=new Uint8Array(arr);
+  q=q.then(()=>{if(!cmdC)throw new Error('Chưa kết nối');return cmdC.writeValueWithResponse?cmdC.writeValueWithResponse(b):cmdC.writeValue(b);});
+  q=q.catch(e=>{console.log(e);});return q;}
+function i16(v){v=Math.round(v)&0xffff;return [v&255,v>>8];}
+
+async function connect(){
+  if(dev&&dev.gatt.connected){manual=true;dev.gatt.disconnect();return;}
+  if(!navigator.bluetooth){$('bmsg').innerHTML='⚠️ Trình duyệt này không hỗ trợ Bluetooth.<br>iPhone: mở trang này bằng app <b>Bluefy</b>. Android: dùng <b>Chrome</b>.';return;}
+  try{
+    if(!dev){dev=await navigator.bluetooth.requestDevice({filters:[{namePrefix:'ESP32-ECU'},{services:[SVC]}],optionalServices:[SVC]});
+      dev.addEventListener('gattserverdisconnected',onDisc);}
+    manual=false;await gattConnect();
+  }catch(e){st('Chưa kết nối');$('bmsg').textContent='Không kết nối được: '+e.message;}}
+async function gattConnect(){
+  st('Đang kết nối...');
+  const s=await dev.gatt.connect(),sv=await s.getPrimaryService(SVC);
+  const d=await sv.getCharacteristic(DATA);cmdC=await sv.getCharacteristic(CMD);q=Promise.resolve();
+  d.addEventListener('characteristicvaluechanged',onData);await d.startNotifications();
+  st('Đã kết nối',1);conn(true);$('bmsg').textContent='';got=0;send([4]);}
+function onDisc(){cmdC=null;conn(false);
+  if(manual){st('Đã ngắt');return;}
+  st('Mất kết nối – đang thử lại...');
+  setTimeout(async()=>{if(dev&&!dev.gatt.connected&&!manual){try{await gattConnect();}catch(e){onDisc();}}},2000);}
+
+function onData(e){const v=e.target.value,t=v.getUint8(0);
+  if(t==0x10&&v.byteLength>=19){
+    last={rpm:v.getUint16(1,true),tps:v.getUint16(3,true)/10,afr:v.getUint16(5,true)/100,bat:v.getUint16(7,true)/100,
+      mt:v.getUint16(9,true),ma:v.getUint16(11,true),mb:v.getUint16(13,true)};
+    let wa_=v.getUint16(17,true);wt.push(v.getUint16(15,true)/10);wa.push(wa_?wa_/100:null);
+    if(wt.length>600){wt.splice(0,wt.length-600);wa.splice(0,wa.length-600);}fresh=true;}
+  else if(t==0x11){const k=v.getUint8(1);for(let j=0;j<8;j++)flat[k*8+j]=v.getInt16(2+j*2,true);
+    got|=1<<k;if(got==1023){map=TPS.map((_,i)=>flat.slice(i*10,i*10+10));draw();if(sel)pick(sel[0],sel[1]);$('msg').textContent='Đã tải bản đồ từ ESP32';}}
+  else if(t==0x12){const a=[v.getInt16(1,true),v.getInt16(3,true),v.getInt16(5,true)/100,v.getInt16(7,true)/100,
+      v.getInt16(9,true)/1000,v.getInt16(11,true)/1000,v.getInt16(13,true)];
+    CFG.forEach((k,i)=>$(k).value=a[i]);$('msg2').textContent='Đã tải cài đặt từ ESP32';}
+  else if(t==0x13){const c=v.getUint8(1);
+    if(c==1)$('msg').textContent='✔ Đã lưu bản đồ vào ESP32';
+    else if(c==2)$('msg2').textContent='✔ Đã lưu cài đặt';
+    else{$('msg').textContent='ESP32 báo lỗi dữ liệu';$('msg2').textContent='ESP32 báo giá trị không hợp lệ';}}}
+
+// ---------- ĐỒNG HỒ ----------
+function mk(id,t,u,big){return `<div class="card ${big?'big':''}"><h3>${t}</h3>
+<svg viewBox="0 0 120 68"><path class="bg" d="M10 62 A50 50 0 0 1 110 62"/>
+<path class="fg" id="${id}A" pathLength="100" d="M10 62 A50 50 0 0 1 110 62"/></svg>
+<div class="val" id="${id}V">--</div><div class="unit">${u}</div></div>`}
+$('gauges').innerHTML=mk('rpm','RPM','vòng/phút',1)+mk('afr','AFR','xăng : gió')+mk('tps','TPS','% bướm ga')+mk('bat','ẮC QUY','Volt');
+function g(id,v,min,max,txt,col){let f=Math.max(0,Math.min(1,(v-min)/(max-min)));
+  $(id+'A').style.strokeDashoffset=100-f*100;$(id+'A').style.stroke=col;$(id+'V').textContent=txt;}
+
+// ---------- BẢN ĐỒ XĂNG ----------
+function near(a,v){let b=0;for(let k=1;k<a.length;k++)if(Math.abs(a[k]-v)<Math.abs(a[b]-v))b=k;return b}
+function hue(v){let f=Math.max(0,Math.min(1,(v-70)/60));return `hsl(${220-220*f},65%,36%)`}
+function draw(){let h='<tr><th>TPS \\ RPM</th>'+RPM.map(r=>`<th>${r/1000}k</th>`).join('')+'</tr>';
+  for(let i=TPS.length-1;i>=0;i--){h+=`<tr><th>${TPS[i]}%</th>`;
+    for(let j=0;j<RPM.length;j++)h+=`<td id="c${i}_${j}"><div style="background:${hue(map[i][j])}" onclick="pick(${i},${j})">${map[i][j]}</div></td>`;
+    h+='</tr>'}
+  $('tb').innerHTML=h;mark();}
+function mark(){document.querySelectorAll('td.cur,td.sel').forEach(e=>e.classList.remove('cur','sel'));
+  if(cur)$(`c${cur[0]}_${cur[1]}`)?.classList.add('cur');
+  if(sel)$(`c${sel[0]}_${sel[1]}`)?.classList.add('sel');}
+function cell(i,j){let d=$(`c${i}_${j}`).firstChild;d.textContent=map[i][j];d.style.background=hue(map[i][j]);}
+function pick(i,j){if(!map.length)return;sel=[i,j];$('edL').innerHTML=`Ô: <b>${RPM[j]} RPM</b> / <b>TPS ${TPS[i]}%</b>`;$('edI').value=map[i][j];mark();}
+function pickCur(){if(cur)pick(cur[0],cur[1])}
+function setv(v){if(!sel)return;v=Math.max(50,Math.min(200,parseInt(v)||100));
+  map[sel[0]][sel[1]]=v;$('edI').value=v;cell(sel[0],sel[1]);$('msg').textContent='Chưa lưu — bấm "Lưu vào ESP32"';}
+function adj(d){if(sel)setv(map[sel[0]][sel[1]]+d)}
+function loadMap(){if(!cmdC){$('msg').textContent='Chưa kết nối Bluetooth';return;}got=0;send([4]);}
+function saveMap(){if(!cmdC||!map.length){$('msg').textContent='Chưa kết nối Bluetooth';return;}
+  const f=map.flat();$('msg').textContent='Đang lưu...';
+  for(let k=0;k<10;k++){let a=[1,k];for(let j=0;j<8;j++)a.push(...i16(f[k*8+j]));send(a);}send([2]);}
+
+// ---------- CÀI ĐẶT ----------
+function loadCfg(){if(!cmdC){$('msg2').textContent='Chưa kết nối Bluetooth';return;}got=0;send([4]);}
+function saveCfg(){if(!cmdC){$('msg2').textContent='Chưa kết nối Bluetooth';return;}
+  const v=CFG.map(k=>parseFloat($(k).value));if(v.some(isNaN)){$('msg2').textContent='Có ô bị trống';return;}
+  const m=[1,1,100,100,1000,1000,1];send([3,...v.flatMap((x,i)=>i16(x*m[i]))]);$('msg2').textContent='Đang lưu...';}
+function cap(k){if(last){$(k).value=last.mt;$('msg2').textContent='Đã lấy '+last.mt+' mV — nhớ bấm Lưu';}}
+function calBat(){let v=parseFloat($('vdo').value);if(v>0&&last&&last.mb>50){$('heSoAcq').value=(v*1000/last.mb).toFixed(3);
+  $('msg2').textContent='Đã tính hệ số — nhớ bấm Lưu';}}
+
+// ---------- BIỂU ĐỒ SÓNG ----------
+let wt=[],wa=[],paused=false,win=10;
+function setWin(s){win=s;[5,10,30].forEach(v=>$('w'+v).classList.toggle('on',v==s));drawW();}
+function togP(){paused=!paused;$('wp').textContent=paused?'Tiếp tục':'Tạm dừng';if(!paused)drawW();}
+function plot(id,arr,min,max,col,band){
+  const c=$(id),r=c.getBoundingClientRect();if(!r.width)return;
+  const dp=window.devicePixelRatio||1;
+  if(c.width!=Math.round(r.width*dp)||c.height!=Math.round(r.height*dp)){c.width=Math.round(r.width*dp);c.height=Math.round(r.height*dp);}
+  const x=c.getContext('2d'),W=c.width,H=c.height,L=30*dp,P=8*dp,n=win*20,dx=(W-L)/(n-1);
+  const Y=v=>P+(H-2*P)*(1-(v-min)/(max-min));
+  x.clearRect(0,0,W,H);
+  if(band){x.fillStyle='rgba(67,160,71,.13)';x.fillRect(L,Y(band[1]),W-L,Y(band[0])-Y(band[1]));
+    x.setLineDash([5*dp,4*dp]);x.strokeStyle='rgba(67,160,71,.7)';x.lineWidth=dp;
+    x.beginPath();x.moveTo(L,Y(band[2]));x.lineTo(W,Y(band[2]));x.stroke();x.setLineDash([]);}
+  x.strokeStyle='#262a31';x.lineWidth=dp;x.fillStyle='#777';x.font=(10*dp)+'px sans-serif';x.textAlign='right';x.textBaseline='middle';
+  for(let k=0;k<=4;k++){let v=min+(max-min)*k/4,y=Y(v);x.beginPath();x.moveTo(L,y);x.lineTo(W,y);x.stroke();x.fillText(+v.toFixed(1),L-4*dp,y);}
+  const stp=win>10?5:1;
+  for(let s=stp;s<win;s+=stp){let xx=W-s*20*dx;x.beginPath();x.moveTo(xx,P);x.lineTo(xx,H-P);x.stroke();}
+  const d=arr.slice(-n),off=n-d.length;
+  x.strokeStyle=col;x.lineWidth=2*dp;x.lineJoin='round';x.beginPath();let pen=false;
+  d.forEach((v,i)=>{if(v==null){pen=false;return;}let xx=L+(off+i)*dx,yy=Y(Math.max(min,Math.min(max,v)));
+    pen?x.lineTo(xx,yy):x.moveTo(xx,yy);pen=true;});
+  x.stroke();}
+function drawW(){if(paused)return;
+  plot('cvT',wt,0,100,'#ab47bc');plot('cvA',wa,10,20,'#29b6f6',[12.5,15.2,14.7]);
+  let t=wt[wt.length-1],a=wa[wa.length-1];
+  $('wtV').textContent=t!=null?Math.round(t)+'%':'--';$('waV').textContent=a!=null?a.toFixed(1):'--';}
+window.addEventListener('resize',drawW);
+
+// ---------- CẬP NHẬT MÀN HÌNH ~10 lần/giây ----------
+setInterval(()=>{if(!fresh||!last)return;fresh=false;const d=last;
+  g('rpm',d.rpm,0,10000,Math.round(d.rpm),d.rpm>9000?'#e53935':d.rpm>7000?'#fb8c00':'#43a047');
+  let ok=d.ma>30;
+  g('afr',ok?d.afr:10,10,20,ok?d.afr.toFixed(1):'--',d.afr<12.5?'#1e88e5':d.afr>15.2?'#e53935':'#43a047');
+  g('tps',d.tps,0,100,Math.round(d.tps),'#8e24aa');
+  g('bat',d.bat,10,16,d.bat.toFixed(1),d.bat<12?'#e53935':d.bat>14.8?'#fb8c00':'#43a047');
+  $('lr').textContent=Math.round(d.rpm);$('lt').textContent=Math.round(d.tps)+'%';$('la').textContent=ok?d.afr.toFixed(1):'--';
+  $('rt').textContent=d.mt+' mV';$('ra').textContent=d.ma+' mV';$('rb').textContent=d.mb+' mV';
+  $('rr').textContent=d.rpm>0?'Có xung':'Không có xung';
+  if(map.length){let c=[near(TPS,d.tps),near(RPM,d.rpm)];if(!cur||c[0]!=cur[0]||c[1]!=cur[1]){cur=c;mark();}}
+  drawW();},100);
+if(!navigator.bluetooth)$('bmsg').innerHTML='⚠️ Trình duyệt này không hỗ trợ Bluetooth.<br>iPhone: mở trang này bằng app <b>Bluefy</b>. Android: dùng <b>Chrome</b>.';
+</script></body></html>
