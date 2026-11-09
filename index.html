@@ -311,11 +311,12 @@ const pRESET=()=>mk([0xC9,0x14,0x02,...ASC('RESET')]);
 function pSHOW(){const wf=cur?cur[67]:0,vc=cur?(cur[13]<<8)|cur[14]:0,cc=cur?(cur[15]<<8)|cur[16]:0;
   return mk([0xC9,0x14,0x02,...ASC('SHOW'),0,0,0,0,0,0xAA,0,0,0,wf,0xAA,vc>>8,vc&255,cc>>8,cc&255]);}
 function pWRITE(idx,data){return mk([0xC9,0x14,0x02,0x50,idx,...data]);}
+let junk=[];setInterval(()=>{if(junk.length){logAdd('RX?',junk,'byte lẻ / sai checksum');junk=[];}},400);
 function parseRx(){
   while(rx.length>=24){
-    if(rx[0]!=0xC0||rx[1]!=0x14){rx.shift();continue;}
+    if(rx[0]!=0xC0||rx[1]!=0x14){junk.push(rx.shift());continue;}
     const f=rx.slice(0,24);
-    if(f[23]!=0x0D||xor22(f)!=f[22]){rx.shift();continue;}
+    if(f[23]!=0x0D||xor22(f)!=f[22]){junk.push(rx.shift());continue;}
     rx.splice(0,24);onFrame(f);}
   if(rx.length>512)rx=rx.slice(-48);}
 function onFrame(f){
@@ -379,17 +380,21 @@ async function doWrite(){
   if(!cmdC){msg('Chưa kết nối Bluetooth');return;}
   if(busy)return;busy=true;
   const data=cur.slice();if(tailOK)for(let i=0;i<7;i++)data[112+i]=data[10+i];else for(let i=0;i<7;i++)data[112+i]=orig[112+i];
-  await sleep(250);
+  await sleep(300);
+  // Gửi liền 7 trang giống phần mềm máy tính (không chờ xác nhận từng trang)
+  let acks=0;const w={p:f=>{if(f[3]==0x50)acks++;return false;},r:()=>{}};waiters.push(w);
   for(let idx=1;idx<=7;idx++){msg(`Đang ghi trang ${idx}/7...`);
-    const ack=waitFor(f=>f[2]==0x0D&&f[3]==0x50,1500);
     sendVotol(pWRITE(idx,data.slice((idx-1)*17,idx*17)),'GHI '+idx);
-    if(!await ack){busy=false;msg(`✖ Votol không xác nhận trang ${idx}. Dừng ghi. Hãy đọc lại thông số để kiểm tra.`);return;}
-    await sleep(60);}
+    await q;await sleep(+LS.get('wdelay',40));}
+  msg('Đã gửi 7 trang, đang chờ Votol lưu...');await sleep(1200);
+  waiters.splice(waiters.indexOf(w),1);
   busy=false;const want=data.slice();
-  msg('Đã ghi, đang đọc lại để kiểm tra...');await sleep(400);
+  msg('Đang đọc lại để kiểm tra...');
   const ok=await readParams();
   if(ok){const bad=[];for(let i=0;i<112;i++)if(orig[i]!=want[i]&&!(i==49||i==50))bad.push(i);
-    msg(bad.length?`⚠️ Đã ghi nhưng ${bad.length} byte đọc lại khác giá trị đã ghi (byte ${bad.slice(0,6).join(', ')}).`:'✔ Ghi thành công và đã kiểm tra lại. Nên tắt / bật khóa xe để áp dụng.');}
+    if(!bad.length)msg(`✔ Ghi thành công (Votol xác nhận ${acks} lần). Tắt / bật khóa xe để áp dụng.`);
+    else{cur=want.slice();for(const i of [49,50])cur[i]=orig[i];fillAll();
+      msg(`✖ Votol chưa lưu (${bad.length} byte vẫn giữ giá trị cũ, xác nhận: ${acks}). Thay đổi vẫn còn trên form. Gửi nhật ký cho Claude để kiểm tra.`);}}
   else msg('Đã gửi 7 trang nhưng không đọc lại được. Hãy bấm Đọc thông số.');}
 function undoAll(){if(!orig)return;cur=orig.slice();fillAll();msg('Đã bỏ các thay đổi chưa ghi');}
 
