@@ -111,7 +111,7 @@ button.b.on{background:#e53935}
 
 <div class="page" id="pr">
   <div class="warn">⚠️ Đo điện áp dây trước khi cắm. Dây đứng yên ~5V: đi qua cầu chia 10k/20k. ~3.3V: nối qua điện trở 1k. ~12V: <b>KHÔNG nối</b>, báo lại để làm mạch khác.</div>
-  <div class="box"><h4>Cổng Redleo – ghi dữ liệu</h4>
+  <div class="box"><h4>CVT-TOOL</h4>
     <div class="f"><div>Tốc độ (baud)<small>thử 9600 trước, rồi 19200, 115200</small></div><select id="rlBaud" onchange="rlSet()"></select></div>
     <div class="f"><div>Ghi dữ liệu<small>kênh A = GPIO18, kênh B = GPIO16</small></div><button class="b" id="rlSniff" onclick="rlToggle('sniff')">Đang tắt</button></div>
     <div class="f"><div>Cho phép ESP32 gửi lệnh<small>chỉ bật khi đã rút cáp máy tính</small></div><button class="b" id="rlTx" onclick="rlToggle('tx')">Đang tắt</button></div>
