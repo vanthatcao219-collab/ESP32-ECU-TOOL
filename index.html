@@ -10,7 +10,7 @@ header b{font-size:18px;letter-spacing:1px}
 #st{font-size:12px;padding:3px 8px;border-radius:8px;background:#1f3a24;color:#7d7}
 #st.bad{background:#4a1c1c;color:#f88}
 .tabs{display:flex;background:#16191e;border-bottom:1px solid #262a31;position:sticky;top:0;z-index:5}
-.tabs button{flex:1;padding:13px 2px;background:none;border:0;color:#888;font-size:14px;font-weight:600;border-bottom:3px solid transparent}
+.tabs button{flex:1;padding:13px 2px;background:none;border:0;color:#888;font-size:13px;font-weight:600;border-bottom:3px solid transparent}
 .tabs button.act{color:#fff;border-color:#e53935}
 .page{display:none;padding:12px}.page.act{display:block}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -57,10 +57,16 @@ header>div{display:flex;gap:8px;align-items:center}
 header button.b{padding:8px 14px;font-size:14px}
 #ban{text-align:center;margin:0 0 12px}
 #ban p{color:#aaa;font-size:14px;margin:6px 0}
+
+#rlLog{background:#0d0f12;border-radius:8px;padding:8px;height:300px;overflow:auto;font:11px/1.5 ui-monospace,Menlo,monospace;color:#bbb;margin:0;white-space:pre}
+#rlLog .a{color:#7d7}#rlLog .b{color:#4fc3f7}#rlLog .e{color:#ffb300}#rlLog .t{color:#666}#rlLog .s{color:#777}
+select{padding:10px;font-size:15px;border-radius:9px;border:1px solid #333;background:#0d0f12;color:#fff}
+button.b.on{background:#e53935}
+.warn{background:#3a2a00;border:1px solid #6d4c00;border-radius:12px;padding:10px 12px;font-size:13px;color:#ffd54f;line-height:1.5}
 </style></head><body>
 <header><b>ESP32 ECU</b><div><span id="st" class="bad">Chưa kết nối</span><button id="bc" class="b green" onclick="connect()">Kết nối</button></div></header>
 
-<div class="tabs"><button class="act" onclick="tab(0)">Đồng hồ</button><button onclick="tab(1)">Biểu đồ</button><button onclick="tab(2)">Bản đồ xăng</button><button onclick="tab(3)">Cài đặt</button></div>
+<div class="tabs"><button class="act" onclick="tab(0)">Đồng hồ</button><button onclick="tab(1)">Biểu đồ</button><button onclick="tab(2)">Bản đồ</button><button onclick="tab(3)">Redleo</button><button onclick="tab(4)">Cài đặt</button></div>
 
 <div class="page act" id="p0"><div class="box" id="ban"><h4>Chưa kết nối ESP32</h4>
 <p>Bật Bluetooth trên điện thoại, cấp điện cho ESP32, rồi bấm nút bên dưới và chọn <b>ESP32-ECU</b>.</p>
@@ -103,6 +109,27 @@ header button.b{padding:8px 14px;font-size:14px}
   <div class="note">100 = chuẩn, lớn hơn = giàu xăng, nhỏ hơn = nghèo xăng (50–200).<br>Khung trắng = ô động cơ đang chạy, khung vàng = ô đang chọn.</div>
 </div>
 
+<div class="page" id="pr">
+  <div class="warn">⚠️ Đo điện áp dây trước khi cắm. Dây đứng yên ~5V: đi qua cầu chia 10k/20k. ~3.3V: nối qua điện trở 1k. ~12V: <b>KHÔNG nối</b>, báo lại để làm mạch khác.</div>
+  <div class="box"><h4>Cổng Redleo – ghi dữ liệu</h4>
+    <div class="f"><div>Tốc độ (baud)<small>thử 9600 trước, rồi 19200, 115200</small></div><select id="rlBaud" onchange="rlSet()"></select></div>
+    <div class="f"><div>Ghi dữ liệu<small>kênh A = GPIO18, kênh B = GPIO16</small></div><button class="b" id="rlSniff" onclick="rlToggle('sniff')">Đang tắt</button></div>
+    <div class="f"><div>Cho phép ESP32 gửi lệnh<small>chỉ bật khi đã rút cáp máy tính</small></div><button class="b" id="rlTx" onclick="rlToggle('tx')">Đang tắt</button></div>
+    <div class="f">Đã nhận<span class="raw" id="rlCnt">A: 0 · B: 0 byte</span></div>
+  </div>
+  <div class="box">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b style="font-size:14px">Nhật ký</b>
+      <div style="display:flex;gap:6px"><button class="b" id="rlP" onclick="rlPause()">Dừng</button><button class="b" onclick="rlClear()">Xóa</button><button class="b green" onclick="rlCopy()">Sao chép</button></div></div>
+    <pre id="rlLog"></pre>
+    <textarea id="rlTa" readonly style="display:none;width:100%;height:160px;margin-top:8px;background:#0d0f12;color:#ccc;border-radius:8px;font:11px monospace"></textarea>
+  </div>
+  <div class="box"><h4>Gửi lệnh (hex)</h4>
+    <div class="row"><input id="rlHex" placeholder="vd: 55 AA 01" autocapitalize="characters" style="flex:1;width:auto;text-align:left;font-family:monospace"><button class="b" onclick="rlSend()">Gửi</button></div>
+    <div class="row" style="font-size:14px"><label><input type="checkbox" id="rlRep" onchange="rlRepeat()" style="width:auto"> Lặp lại mỗi</label><input id="rlMs" type="number" value="200" style="width:80px"> ms</div>
+    <div class="msg" id="msg3"></div>
+  </div>
+  <div class="note">Cách ghi: cắm cáp máy tính vào Redleo như bình thường, câu kênh A/B vào 2 dây dữ liệu, bật "Ghi dữ liệu", rồi mở phần mềm Redleo ECU Pro, nổ máy, vặn ga. Xong bấm "Sao chép" và gửi nội dung cho Claude.</div>
+</div>
 <div class="page" id="p2">
   <div class="box"><h4>Điện áp đo tại chân ESP32 (trực tiếp)</h4>
     <div class="f">TPS (GPIO1)<span class="raw" id="rt">-</span></div>
@@ -140,7 +167,7 @@ let dev=null,cmdC=null,q=Promise.resolve(),manual=false;
 const $=id=>document.getElementById(id);
 
 function tab(i){document.querySelectorAll('.tabs button').forEach((b,k)=>b.classList.toggle('act',k==i));
-  document.querySelectorAll('.page').forEach((p,k)=>p.classList.toggle('act',k==i));if(i==1)drawW();}
+  document.querySelectorAll('.page').forEach((p,k)=>p.classList.toggle('act',k==i));if(i==1)drawW();if(i==3){rlDirty=true;rlRender();}}
 
 // ---------- BLUETOOTH ----------
 function st(t,ok){$('st').textContent=t;$('st').className=ok?'':'bad';}
@@ -164,7 +191,7 @@ async function gattConnect(){
   const d=await sv.getCharacteristic(DATA);cmdC=await sv.getCharacteristic(CMD);q=Promise.resolve();
   d.addEventListener('characteristicvaluechanged',onData);await d.startNotifications();
   st('Đã kết nối',1);conn(true);$('bmsg').textContent='';got=0;send([4]);}
-function onDisc(){cmdC=null;conn(false);
+function onDisc(){cmdC=null;conn(false);rl.sniff=rl.tx=false;rlUI();clearInterval(rlTimer);if($('rlRep'))$('rlRep').checked=false;
   if(manual){st('Đã ngắt');return;}
   st('Mất kết nối – đang thử lại...');
   setTimeout(async()=>{if(dev&&!dev.gatt.connected&&!manual){try{await gattConnect();}catch(e){onDisc();}}},2000);}
@@ -180,6 +207,9 @@ function onData(e){const v=e.target.value,t=v.getUint8(0);
   else if(t==0x12){const a=[v.getInt16(1,true),v.getInt16(3,true),v.getInt16(5,true)/100,v.getInt16(7,true)/100,
       v.getInt16(9,true)/1000,v.getInt16(11,true)/1000,v.getInt16(13,true)];
     CFG.forEach((k,i)=>$(k).value=a[i]);$('msg2').textContent='Đã tải cài đặt từ ESP32';}
+  else if(t==0x20){const d=v.getUint8(1),b=[];for(let k=2;k<v.byteLength;k++)b.push(v.getUint8(k));
+    if(d==0)cntA+=b.length;else cntB+=b.length;rlAdd(d,b);}
+  else if(t==0x21){rl.baud=v.getUint8(1);const f=v.getUint8(2);rl.sniff=!!(f&1);rl.tx=!!(f&2);rlUI();}
   else if(t==0x13){const c=v.getUint8(1);
     if(c==1)$('msg').textContent='✔ Đã lưu bản đồ vào ESP32';
     else if(c==2)$('msg2').textContent='✔ Đã lưu cài đặt';
@@ -254,6 +284,47 @@ function drawW(){if(paused)return;
   $('wtV').textContent=t!=null?Math.round(t)+'%':'--';$('waV').textContent=a!=null?a.toFixed(1):'--';}
 window.addEventListener('resize',drawW);
 
+
+// ---------- CỔNG REDLEO ----------
+const BAUDS=[4800,9600,10400,19200,38400,57600,115200];
+let rl={baud:1,sniff:false,tx:false},rlLines=[],rlCur=null,rlPaused=false,rlDirty=false,cntA=0,cntB=0,rlT0=performance.now(),rlTimer=null;
+$('rlBaud').innerHTML=BAUDS.map((b,i)=>`<option value="${i}">${b}</option>`).join('');$('rlBaud').value=1;
+function rlUI(){$('rlBaud').value=rl.baud;
+  $('rlSniff').textContent=rl.sniff?'Đang ghi':'Đang tắt';$('rlSniff').classList.toggle('on',rl.sniff);
+  $('rlTx').textContent=rl.tx?'Đang bật':'Đang tắt';$('rlTx').classList.toggle('on',rl.tx);}
+function rlApply(){if(!cmdC){$('msg3').textContent='Chưa kết nối Bluetooth';return;}send([6,rl.baud,(rl.sniff?1:0)|(rl.tx?2:0)]);rlUI();}
+function rlSet(){rl.baud=+$('rlBaud').value;rlAdd(2,null,'— đổi baud '+BAUDS[rl.baud]+' —');rlApply();}
+function rlToggle(k){rl[k]=!rl[k];if(k=='tx'&&rl.tx)$('msg3').textContent='Nhớ rút cáp máy tính khỏi Redleo khi ESP32 gửi lệnh';rlApply();}
+function hx(b){return b.toString(16).toUpperCase().padStart(2,'0')}
+function rlAdd(dir,bytes,text){const t=performance.now();
+  if(bytes&&rlCur&&rlCur.dir==dir&&t-rlCur.last<30&&rlCur.bytes.length<48){rlCur.bytes.push(...bytes);rlCur.last=t;}
+  else{rlCur={t:(t-rlT0)/1000,dir,bytes:bytes?[...bytes]:[],text,last:t};rlLines.push(rlCur);if(rlLines.length>3000)rlLines.splice(0,500);}
+  if(!bytes)rlCur=null;rlDirty=true;}
+function rlFmt(l,html){const tag=['A→','B→','  ','ESP→'][l.dir];
+  const tt=l.t.toFixed(3).padStart(8);
+  if(l.text)return html?`<span class="t">${tt}</span> <span class="s">${l.text}</span>`:`${tt} ${l.text}`;
+  const h=l.bytes.map(hx).join(' '),a=l.bytes.map(b=>b>=32&&b<127?String.fromCharCode(b):'.').join('');
+  if(!html)return `${tt} ${tag} ${h} |${a}|`;
+  const esc=a.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+  return `<span class="t">${tt}</span> <span class="${['a','b','s','e'][l.dir]}">${tag} ${h}</span> <span class="s">|${esc}|</span>`;}
+function rlRender(){if(!rlDirty||rlPaused||!$('pr').classList.contains('act'))return;rlDirty=false;
+  const el=$('rlLog'),stick=el.scrollTop+el.clientHeight>=el.scrollHeight-20;
+  el.innerHTML=rlLines.slice(-300).map(l=>rlFmt(l,1)).join('\n');if(stick)el.scrollTop=el.scrollHeight;
+  $('rlCnt').textContent=`A: ${cntA} · B: ${cntB} byte`;}
+function rlPause(){rlPaused=!rlPaused;$('rlP').textContent=rlPaused?'Tiếp':'Dừng';rlDirty=true;rlRender();}
+function rlClear(){rlLines=[];rlCur=null;cntA=cntB=0;rlT0=performance.now();rlDirty=true;$('rlLog').innerHTML='';rlRender();}
+async function rlCopy(){const txt=`Redleo log – baud ${BAUDS[rl.baud]}\n`+rlLines.map(l=>rlFmt(l,0)).join('\n');
+  try{await navigator.clipboard.writeText(txt);$('msg3').textContent='✔ Đã sao chép '+rlLines.length+' dòng';$('rlTa').style.display='none';}
+  catch(e){const ta=$('rlTa');ta.value=txt;ta.style.display='block';ta.focus();ta.select();$('msg3').textContent='Chạm giữ vào ô bên dưới → Chọn tất cả → Sao chép';}}
+function rlParse(){const m=($('rlHex').value.match(/[0-9a-fA-F]{2}/g)||[]).map(x=>parseInt(x,16));return m;}
+function rlSend(){if(!cmdC){$('msg3').textContent='Chưa kết nối Bluetooth';return false;}
+  if(!rl.tx){$('msg3').textContent='Hãy bật "Cho phép ESP32 gửi lệnh" trước';return false;}
+  const b=rlParse();if(!b.length){$('msg3').textContent='Nhập byte dạng hex, vd: 55 AA 01';return false;}
+  for(let i=0;i<b.length;i+=19)send([5,...b.slice(i,i+19)]);rlCur=null;rlAdd(3,b);rlCur=null;return true;}
+function rlRepeat(){clearInterval(rlTimer);rlTimer=null;
+  if($('rlRep').checked){if(!rlSend()){$('rlRep').checked=false;return;}
+    rlTimer=setInterval(()=>{if(!rlSend()){clearInterval(rlTimer);$('rlRep').checked=false;}},Math.max(50,+$('rlMs').value||200));}}
+setInterval(rlRender,150);
 // ---------- CẬP NHẬT MÀN HÌNH ~10 lần/giây ----------
 setInterval(()=>{if(!fresh||!last)return;fresh=false;const d=last;
   g('rpm',d.rpm,0,10000,Math.round(d.rpm),d.rpm>9000?'#e53935':d.rpm>7000?'#fb8c00':'#43a047');
